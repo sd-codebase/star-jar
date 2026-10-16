@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import PinPad from "@/components/PinPad";
 import SkyBackground from "@/components/SkyBackground";
 import { AVATARS, COLORS, defaultData } from "@/lib/defaults";
@@ -17,10 +17,10 @@ const btn = "btn3d whitespace-nowrap px-4 py-2 text-white";
 
 export default function ParentPage() {
   const data = useData();
+  // Unlock lives only in this page's memory: leaving or reloading the Parent Zone always asks for the PIN again.
   const [unlocked, setUnlocked] = useState(false);
   const [tab, setTab] = useState<Tab>("Kids");
 
-  useEffect(() => setUnlocked(sessionStorage.getItem("starjar.parent") === "1"), []);
 
   if (!data) return <SkyBackground />;
 
@@ -38,7 +38,6 @@ export default function ParentPage() {
               onSubmit={(pin) => {
                 if (creating) setData((d) => ({ ...d, settings: { ...d.settings, parentPin: pin } }));
                 else if (pin !== data.settings.parentPin) return false;
-                sessionStorage.setItem("starjar.parent", "1");
                 setUnlocked(true);
                 return true;
               }}
@@ -63,10 +62,7 @@ export default function ParentPage() {
           </Link>
           <button
             className={`${btn} bg-slate-500`}
-            onClick={() => {
-              sessionStorage.removeItem("starjar.parent");
-              setUnlocked(false);
-            }}
+            onClick={() => setUnlocked(false)}
           >
             🔒 Lock
           </button>
@@ -484,7 +480,7 @@ function SettingsTab({ data }: { data: AppData }) {
 
       <section>
         <h2 className="text-2xl font-bold">Parent PIN</h2>
-        <button className={`${btn} mt-2 bg-purple-600`} onClick={() => { set({ parentPin: null }); sessionStorage.removeItem("starjar.parent"); location.reload(); }}>
+        <button className={`${btn} mt-2 bg-purple-600`} onClick={() => { set({ parentPin: null }); location.reload(); }}>
           Change parent PIN
         </button>
       </section>

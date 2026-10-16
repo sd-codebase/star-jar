@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PinPad from "@/components/PinPad";
 import SkyBackground from "@/components/SkyBackground";
 import { burst, sounds, speak } from "@/lib/fx";
@@ -15,6 +15,9 @@ export default function Home() {
   const data = useData();
   const router = useRouter();
   const [picked, setPicked] = useState<Kid | null>(null);
+
+  // Coming back home (🏠, back button, reopening the app) logs the child out, so the PIN is always asked.
+  useEffect(() => sessionStorage.removeItem("starjar.kid"), []);
 
   if (!data) return <SkyBackground />;
 
