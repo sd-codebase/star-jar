@@ -44,12 +44,12 @@ export default function Home() {
         initial={{ scale: 0, rotate: -20 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ type: "spring", bounce: 0.6 }}
-        className="mt-10 flex flex-col items-center"
+        className="mt-12 flex flex-col items-center sm:mt-10"
       >
         <motion.div animate={{ rotate: [0, -10, 10, 0], y: [0, -10, 0] }} transition={{ duration: 2.5, repeat: Infinity }} className="text-8xl drop-shadow-xl">
           🫙
         </motion.div>
-        <h1 className="text-outline mt-2 text-6xl font-bold tracking-wide text-yellow-300 drop-shadow-[0_6px_0_rgba(0,0,0,0.25)] sm:text-7xl">
+        <h1 className="text-outline mt-2 text-5xl font-bold tracking-wide text-yellow-300 drop-shadow-[0_6px_0_rgba(0,0,0,0.25)] sm:text-7xl">
           Star Jar
         </h1>
         <p className="mt-3 text-2xl font-semibold text-white drop-shadow">Who&apos;s playing today?</p>
@@ -64,7 +64,7 @@ export default function Home() {
           </Link>
         </div>
       ) : (
-        <div className="mt-10 grid w-full grid-cols-2 gap-5 sm:grid-cols-3">
+        <div className="mt-10 flex w-full flex-wrap justify-center gap-4 sm:gap-5">
           {data.kids.map((kid, i) => (
             <motion.button
               key={kid.id}
@@ -74,17 +74,17 @@ export default function Home() {
               whileHover={{ scale: 1.06, rotate: i % 2 ? 2 : -2 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => pick(kid)}
-              className="btn3d flex flex-col items-center p-5 text-white"
+              className="btn3d flex w-[calc(50%-0.5rem)] flex-col items-center p-4 text-white sm:w-[calc(33.333%-0.84rem)] sm:p-5"
               style={{ background: kid.color }}
             >
               <motion.span
                 animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 1.6, delay: i * 0.3, repeat: Infinity }}
-                className="flex h-28 w-28 items-center justify-center rounded-full bg-white/90 text-7xl shadow-inner"
+                className="flex h-24 w-24 items-center justify-center rounded-full bg-white/90 text-6xl shadow-inner sm:h-28 sm:w-28 sm:text-7xl"
               >
                 {kid.avatar}
               </motion.span>
-              <span className="mt-3 text-3xl font-bold drop-shadow">{kid.name}</span>
+              <span className="mt-3 w-full truncate text-center text-2xl font-bold drop-shadow sm:text-3xl">{kid.name}</span>
               <span className="mt-1 rounded-full bg-black/20 px-3 py-0.5 text-lg">⭐ {totalStars(data.entries.filter((e) => e.kidId === kid.id))}</span>
             </motion.button>
           ))}
@@ -106,7 +106,7 @@ export default function Home() {
               exit={{ scale: 0.3, opacity: 0 }}
               transition={{ type: "spring", bounce: 0.5 }}
               onClick={(e) => e.stopPropagation()}
-              className="card relative flex flex-col items-center p-6"
+              className="card relative flex max-w-full flex-col items-center p-5 sm:p-6"
             >
               <button onClick={() => setPicked(null)} className="absolute right-4 top-3 text-3xl text-purple-400">
                 ✕
@@ -114,7 +114,7 @@ export default function Home() {
               <div className="flex h-24 w-24 items-center justify-center rounded-full text-6xl" style={{ background: picked.color }}>
                 {picked.avatar}
               </div>
-              <h2 className="mt-2 text-3xl font-bold">Hi {picked.name}!</h2>
+              <h2 className="mt-2 max-w-full truncate text-3xl font-bold">Hi {picked.name}!</h2>
               <div className="mt-4">
                 <PinPad onSubmit={submit} hint="Your secret code: birthday day + month 🎂" />
               </div>

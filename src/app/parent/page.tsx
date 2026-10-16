@@ -13,7 +13,7 @@ const TABS = ["Kids", "Activities", "Milestones", "Log & Gifts", "Settings"] as 
 type Tab = (typeof TABS)[number];
 
 const input = "rounded-xl border-2 border-purple-200 bg-white px-3 py-2 outline-none focus:border-purple-500";
-const btn = "btn3d px-4 py-2 text-white";
+const btn = "btn3d whitespace-nowrap px-4 py-2 text-white";
 
 export default function ParentPage() {
   const data = useData();
@@ -55,8 +55,8 @@ export default function ParentPage() {
   return (
     <main className="mx-auto max-w-4xl px-4 pb-20 pt-4">
       <SkyBackground />
-      <header className="flex items-center justify-between">
-        <h1 className="text-outline text-4xl font-bold text-white">Parent Zone</h1>
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-outline whitespace-nowrap text-3xl font-bold text-white sm:text-4xl">Parent Zone</h1>
         <div className="flex gap-2">
           <Link href="/" className={`${btn} bg-purple-600`}>
             🏠 Home
@@ -73,15 +73,15 @@ export default function ParentPage() {
         </div>
       </header>
 
-      <nav className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-2">
+      <nav className="mt-4 flex flex-wrap gap-2 pb-2">
         {TABS.map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`btn3d shrink-0 px-4 py-2 ${tab === t ? "bg-yellow-300 text-purple-900" : "bg-white/90 text-purple-700"}`}>
+          <button key={t} onClick={() => setTab(t)} className={`btn3d px-3 py-2 text-sm sm:px-4 sm:text-base ${tab === t ? "bg-yellow-300 text-purple-900" : "bg-white/90 text-purple-700"}`}>
             {t}
           </button>
         ))}
       </nav>
 
-      <div className="card mt-4 p-5">
+      <div className="card mt-4 p-3 sm:p-5">
         {tab === "Kids" && <KidsTab data={data} />}
         {tab === "Activities" && <ActivitiesTab data={data} />}
         {tab === "Milestones" && <MilestonesTab data={data} />}
@@ -114,7 +114,7 @@ function KidsTab({ data }: { data: AppData }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-bold">Players</h2>
         <button className={`${btn} bg-green-500`} onClick={() => setEditing(blank())}>
           + Add child
@@ -126,7 +126,7 @@ function KidsTab({ data }: { data: AppData }) {
             <span className="flex h-14 w-14 items-center justify-center rounded-full text-4xl" style={{ background: k.color }}>
               {k.avatar}
             </span>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <div className="text-xl font-bold">{k.name}</div>
               <div className="text-sm text-purple-700">
                 PIN <b>{pinFor(k.birthdate)}</b> · ⭐ {totalStars(data.entries.filter((e) => e.kidId === k.id))}
@@ -204,7 +204,7 @@ function ActivitiesTab({ data }: { data: AppData }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-bold">Activities</h2>
         <div className="flex gap-2">
           <button className={`${btn} bg-green-500`} onClick={() => setData((d) => ({ ...d, activities: [...d.activities, { id: uid(), name: "New activity", emoji: "🌟", points: 5, kind: "good" }] }))}>
@@ -218,22 +218,26 @@ function ActivitiesTab({ data }: { data: AppData }) {
       <p className="mt-1 text-sm text-purple-600">Changes save automatically. Past history keeps its old name & points.</p>
       <ul className="mt-4 space-y-2">
         {data.activities.map((a) => (
-          <li key={a.id} className={`flex flex-wrap items-center gap-2 rounded-2xl p-2 ${a.kind === "good" ? "bg-green-50" : "bg-red-50"}`}>
-            <input className={`${input} w-16 text-center text-2xl`} value={a.emoji} onChange={(e) => update(a.id, { emoji: e.target.value })} />
-            <input className={`${input} min-w-0 flex-1`} value={a.name} onChange={(e) => update(a.id, { name: e.target.value })} />
-            <input
-              type="number"
-              className={`${input} w-20`}
-              value={a.points}
-              onChange={(e) => {
-                const n = Number(e.target.value) || 0;
-                update(a.id, { points: n, kind: n < 0 ? "bad" : "good" });
-              }}
-            />
-            <span className="w-14 text-sm font-bold">{a.kind === "good" ? "😊 good" : "😟 oops"}</span>
-            <button className={`${btn} bg-red-400 px-3`} onClick={() => setData((d) => ({ ...d, activities: d.activities.filter((x) => x.id !== a.id) }))}>
-              ✕
-            </button>
+          <li key={a.id} className={`flex flex-col gap-2 rounded-2xl p-2 sm:flex-row sm:items-center ${a.kind === "good" ? "bg-green-50" : "bg-red-50"}`}>
+            <div className="flex min-w-0 flex-1 gap-2">
+              <input className={`${input} w-16 shrink-0 text-center text-2xl`} value={a.emoji} onChange={(e) => update(a.id, { emoji: e.target.value })} />
+              <input className={`${input} min-w-0 flex-1`} value={a.name} onChange={(e) => update(a.id, { name: e.target.value })} />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                className={`${input} w-20`}
+                value={a.points}
+                onChange={(e) => {
+                  const n = Number(e.target.value) || 0;
+                  update(a.id, { points: n, kind: n < 0 ? "bad" : "good" });
+                }}
+              />
+              <span className="flex-1 whitespace-nowrap text-sm font-bold sm:w-16 sm:flex-none">{a.kind === "good" ? "😊 good" : "😟 oops"}</span>
+              <button className={`${btn} bg-red-400 px-3`} onClick={() => setData((d) => ({ ...d, activities: d.activities.filter((x) => x.id !== a.id) }))}>
+                ✕
+              </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -250,7 +254,7 @@ function MilestonesTab({ data }: { data: AppData }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-bold">Milestones & Gifts</h2>
         <button
           className={`${btn} bg-green-500`}
@@ -261,17 +265,23 @@ function MilestonesTab({ data }: { data: AppData }) {
           + Add
         </button>
       </div>
-      <p className="mt-1 text-sm text-purple-600">Stars needed · badge (virtual) · title · real gift (optional)</p>
+      <p className="mt-1 text-sm text-purple-600">Badge (virtual) · title · stars needed · real gift (optional)</p>
       <ul className="mt-4 space-y-2">
         {sorted.map((m) => (
-          <li key={m.id} className="flex flex-wrap items-center gap-2 rounded-2xl bg-yellow-50 p-2">
-            <input type="number" className={`${input} w-24`} value={m.points} onChange={(e) => update(m.id, { points: Math.max(1, Number(e.target.value) || 1) })} />
-            <input className={`${input} w-16 text-center text-2xl`} value={m.badge} onChange={(e) => update(m.id, { badge: e.target.value })} />
-            <input className={`${input} min-w-0 flex-1`} value={m.title} onChange={(e) => update(m.id, { title: e.target.value })} />
-            <input className={`${input} min-w-0 flex-1`} placeholder="Real gift…" value={m.gift} onChange={(e) => update(m.id, { gift: e.target.value })} />
-            <button className={`${btn} bg-red-400 px-3`} onClick={() => setData((d) => ({ ...d, milestones: d.milestones.filter((x) => x.id !== m.id) }))}>
-              ✕
-            </button>
+          <li key={m.id} className="flex flex-col gap-2 rounded-2xl bg-yellow-50 p-2 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-1 gap-2">
+              <input className={`${input} w-16 shrink-0 text-center text-2xl`} value={m.badge} onChange={(e) => update(m.id, { badge: e.target.value })} />
+              <input className={`${input} min-w-0 flex-1`} placeholder="Title" value={m.title} onChange={(e) => update(m.id, { title: e.target.value })} />
+            </div>
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <label className="flex shrink-0 items-center gap-1 font-bold">
+                <input type="number" className={`${input} w-20`} value={m.points} onChange={(e) => update(m.id, { points: Math.max(1, Number(e.target.value) || 1) })} />⭐
+              </label>
+              <input className={`${input} min-w-0 flex-1`} placeholder="Real gift…" value={m.gift} onChange={(e) => update(m.id, { gift: e.target.value })} />
+              <button className={`${btn} shrink-0 bg-red-400 px-3`} onClick={() => setData((d) => ({ ...d, milestones: d.milestones.filter((x) => x.id !== m.id) }))}>
+                ✕
+              </button>
+            </div>
           </li>
         ))}
       </ul>

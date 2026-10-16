@@ -26,7 +26,7 @@ function useNow(ms = 1000) {
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="mt-8">
-    <h2 className="text-outline mb-3 text-3xl font-bold text-white drop-shadow-[0_4px_0_rgba(0,0,0,0.2)]">{title}</h2>
+    <h2 className="text-outline mb-3 text-2xl font-bold sm:text-3xl text-white drop-shadow-[0_4px_0_rgba(0,0,0,0.2)]">{title}</h2>
     {children}
   </section>
 );
@@ -118,12 +118,12 @@ export default function KidPage() {
         <motion.div
           animate={{ rotate: [0, -8, 8, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white text-5xl shadow-lg"
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-4 border-white text-4xl shadow-lg sm:h-16 sm:w-16 sm:text-5xl"
           style={{ background: kid.color }}
         >
           {kid.avatar}
         </motion.div>
-        <h1 className="text-outline flex-1 text-4xl font-bold text-white drop-shadow">Hi {kid.name}!</h1>
+        <h1 className="text-outline min-w-0 flex-1 truncate text-3xl font-bold text-white drop-shadow sm:text-4xl">Hi {kid.name}!</h1>
         <motion.button whileTap={{ scale: 0.9 }} onClick={logout} className="btn3d bg-white px-4 py-2 text-2xl">
           🏠
         </motion.button>
@@ -134,7 +134,7 @@ export default function KidPage() {
         <StarJar progress={progress} color={kid.color} />
         <div className="flex w-full flex-1 flex-col items-center sm:items-start">
           <div className="text-xl font-semibold text-purple-700">My Stars</div>
-          <motion.div key={total} initial={{ scale: 1.4 }} animate={{ scale: 1 }} className="flex items-center gap-2 text-7xl font-bold text-purple-900">
+          <motion.div key={total} initial={{ scale: 1.4 }} animate={{ scale: 1 }} className="flex items-center gap-2 text-6xl font-bold text-purple-900 sm:text-7xl">
             <motion.span animate={{ rotate: 360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }}>
               ⭐
             </motion.span>
@@ -144,7 +144,7 @@ export default function KidPage() {
           {next ? (
             <div className="mt-4 w-full">
               <div className="mb-1 flex justify-between text-lg font-bold">
-                <span>Next treasure: {next.title}</span>
+                <span className="min-w-0 truncate">Next treasure: {next.title}</span>
                 <span>🎁</span>
               </div>
               <div className="h-8 w-full overflow-hidden rounded-full border-4 border-purple-900 bg-purple-100">

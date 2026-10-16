@@ -30,7 +30,7 @@ export default function FeedbackOverlay({ feedback, onClose }: { feedback: Feedb
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className={`fixed inset-0 z-40 flex items-center justify-center p-4 ${feedback.kind === "bad" ? "bg-slate-900/70" : "bg-purple-950/50"}`}
+          className={`fixed inset-0 z-40 flex items-center justify-center overflow-hidden p-4 ${feedback.kind === "bad" ? "bg-slate-900/70" : "bg-purple-950/50"}`}
         >
           {feedback.kind === "good" && <Good f={feedback} />}
           {feedback.kind === "bad" && <Bad f={feedback} />}
@@ -50,21 +50,21 @@ function Good({ f }: { f: Feedback }) {
       transition={{ type: "spring", bounce: 0.6 }}
       className="relative flex flex-col items-center"
     >
-      <motion.div className="rays absolute -top-24 h-96 w-96" animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }} />
+      <motion.div className="rays absolute -top-16 h-80 w-80 sm:-top-24 sm:h-96 sm:w-96" animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }} />
       <div className="relative flex h-48 w-48 items-center justify-center">
         {RING.map((a, i) => (
           <motion.span
             key={i}
             className="absolute text-3xl"
             initial={{ x: 0, y: 0, scale: 0 }}
-            animate={{ x: Math.cos(a) * 140, y: Math.sin(a) * 140, scale: [0, 1.4, 0.8], rotate: 360 }}
+            animate={{ x: Math.cos(a) * 120, y: Math.sin(a) * 120, scale: [0, 1.4, 0.8], rotate: 360 }}
             transition={{ duration: 1, delay: 0.15 }}
           >
             {i % 2 ? "⭐" : "✨"}
           </motion.span>
         ))}
         <motion.span
-          className="text-[8rem] drop-shadow-2xl"
+          className="text-[6.5rem] drop-shadow-2xl sm:text-[8rem]"
           animate={{ scale: [1, 1.25, 1], rotate: [0, -12, 12, 0] }}
           transition={{ duration: 0.8, repeat: Infinity }}
         >
@@ -75,7 +75,7 @@ function Good({ f }: { f: Feedback }) {
         initial={{ y: 40, scale: 0.5 }}
         animate={{ y: 0, scale: 1 }}
         transition={{ type: "spring", delay: 0.2, bounce: 0.7 }}
-        className="text-outline relative mt-2 text-6xl font-bold text-yellow-300 drop-shadow-[0_6px_0_rgba(0,0,0,0.3)] sm:text-7xl"
+        className="text-outline relative mt-2 text-center text-5xl font-bold text-yellow-300 drop-shadow-[0_6px_0_rgba(0,0,0,0.3)] sm:text-7xl"
       >
         {f.title}
       </motion.h2>
@@ -83,11 +83,11 @@ function Good({ f }: { f: Feedback }) {
         initial={{ scale: 0 }}
         animate={{ scale: [0, 1.5, 1] }}
         transition={{ delay: 0.4, duration: 0.5 }}
-        className="btn3d relative mt-4 bg-yellow-300 px-6 py-2 text-4xl text-purple-900"
+        className="btn3d relative mt-4 bg-yellow-300 px-6 py-2 text-3xl text-purple-900 sm:text-4xl"
       >
         +{f.points} ⭐
       </motion.div>
-      <p className="relative mt-5 max-w-sm text-center text-2xl font-semibold text-white drop-shadow-lg">{f.text}</p>
+      <p className="relative mt-5 max-w-sm text-center text-xl font-semibold sm:text-2xl text-white drop-shadow-lg">{f.text}</p>
     </motion.div>
   );
 }
@@ -99,7 +99,7 @@ function Bad({ f }: { f: Feedback }) {
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 200, opacity: 0 }}
       transition={{ type: "spring", bounce: 0.3 }}
-      className="relative flex w-full max-w-sm flex-col items-center rounded-[2rem] bg-gradient-to-b from-sky-400 to-indigo-600 p-8 shadow-2xl"
+      className="relative flex w-full max-w-sm flex-col items-center rounded-[2rem] bg-gradient-to-b from-sky-400 to-indigo-600 p-6 sm:p-8 shadow-2xl"
     >
       <motion.div animate={{ x: [-10, 10, -10] }} transition={{ duration: 3, repeat: Infinity }} className="relative text-8xl">
         🌧️
@@ -140,7 +140,7 @@ function Blocked({ f }: { f: Feedback }) {
       animate={{ scale: 1, rotate: [0, -4, 4, -4, 0] }}
       exit={{ scale: 0 }}
       transition={{ type: "spring", bounce: 0.6 }}
-      className="card flex max-w-sm flex-col items-center p-8 text-center"
+      className="card flex max-w-sm flex-col items-center p-6 text-center sm:p-8"
     >
       <motion.span animate={{ rotate: [0, 180, 360] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-7xl">
         {f.emoji}

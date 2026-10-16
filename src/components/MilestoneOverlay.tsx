@@ -34,18 +34,18 @@ export default function MilestoneOverlay({ milestone, kidName, onDone }: { miles
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-indigo-900/95 via-purple-800/95 to-pink-700/95 p-4"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center-safe overflow-x-hidden overflow-y-auto bg-gradient-to-b from-indigo-900/95 via-purple-800/95 to-pink-700/95 p-4"
         >
           <motion.h2
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ type: "spring", bounce: 0.6 }}
-            className="text-outline text-center text-5xl font-bold text-yellow-300 sm:text-6xl"
+            className="text-outline text-center text-4xl font-bold text-yellow-300 sm:text-6xl"
           >
             {opened ? "TREASURE!" : "You found a treasure!"}
           </motion.h2>
 
-          <div className="relative mt-8 flex h-80 w-80 items-center justify-center">
+          <div className="relative mt-4 flex h-56 w-56 shrink-0 items-center justify-center sm:mt-8 sm:h-80 sm:w-80">
             {opened && (
               <motion.div
                 className="rays absolute inset-[-40%]"
@@ -60,7 +60,7 @@ export default function MilestoneOverlay({ milestone, kidName, onDone }: { miles
                 animate={{ rotate: [0, -12, 12, -12, 12, 0], scale: 1 + taps * 0.15 }}
                 transition={{ rotate: { duration: 0.6, repeat: Infinity, repeatDelay: 0.4 } }}
                 whileTap={{ scale: 1.4 + taps * 0.15 }}
-                className="relative text-[10rem] drop-shadow-2xl"
+                className="relative text-[8rem] drop-shadow-2xl sm:text-[10rem]"
               >
                 🎁
               </motion.button>
@@ -69,7 +69,7 @@ export default function MilestoneOverlay({ milestone, kidName, onDone }: { miles
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: "spring", bounce: 0.6, duration: 1 }}
-                className="relative flex h-56 w-56 items-center justify-center rounded-full border-8 border-yellow-300 bg-white text-[8rem] shadow-[0_0_80px_rgba(255,230,0,0.8)]"
+                className="relative flex h-44 w-44 items-center justify-center rounded-full border-8 border-yellow-300 bg-white text-[6rem] sm:h-56 sm:w-56 sm:text-[8rem] shadow-[0_0_80px_rgba(255,230,0,0.8)]"
               >
                 <motion.span animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1, repeat: Infinity }}>
                   {milestone.badge}
@@ -79,20 +79,20 @@ export default function MilestoneOverlay({ milestone, kidName, onDone }: { miles
           </div>
 
           {!opened ? (
-            <motion.p animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 0.8, repeat: Infinity }} className="mt-6 text-3xl font-bold text-white">
+            <motion.p animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 0.8, repeat: Infinity }} className="mt-6 text-center text-2xl font-bold text-white sm:text-3xl">
               👆 Tap the gift {3 - taps} {3 - taps === 1 ? "time" : "times"}!
             </motion.p>
           ) : (
-            <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="mt-6 flex flex-col items-center text-center">
+            <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="mt-4 flex flex-col items-center text-center sm:mt-6">
               <p className="text-4xl font-bold text-white">{milestone.title}</p>
               <p className="text-xl text-pink-100">{milestone.points} stars reached!</p>
               {milestone.gift && (
-                <div className="btn3d mt-5 bg-yellow-300 px-6 py-4 text-2xl text-purple-900">
+                <div className="btn3d mt-5 bg-yellow-300 px-5 py-3 text-xl text-purple-900 sm:px-6 sm:py-4 sm:text-2xl">
                   🎉 Your gift: <b>{milestone.gift}</b>
                   <div className="text-base font-semibold">Show this to Mom or Dad!</div>
                 </div>
               )}
-              <motion.button whileTap={{ scale: 0.9 }} onClick={done} className="btn3d mt-8 bg-green-400 px-10 py-4 text-3xl text-white">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={done} className="btn3d mt-5 shrink-0 bg-green-400 px-10 py-3 text-3xl text-white sm:mt-8 sm:py-4">
                 Yay! 🥳
               </motion.button>
             </motion.div>
