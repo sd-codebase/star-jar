@@ -1,103 +1,127 @@
-import Image from "next/image";
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import PinPad from "@/components/PinPad";
+import SkyBackground from "@/components/SkyBackground";
+import { burst, sounds, speak } from "@/lib/fx";
+import { pinFor, totalStars } from "@/lib/rules";
+import { useData } from "@/lib/store";
+import type { Kid } from "@/lib/types";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const data = useData();
+  const router = useRouter();
+  const [picked, setPicked] = useState<Kid | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  if (!data) return <SkyBackground />;
+
+  const pick = (kid: Kid) => {
+    sounds.tap();
+    speak(`Hi ${kid.name}! Enter your secret code.`);
+    setPicked(kid);
+  };
+
+  const submit = (pin: string) => {
+    if (!picked || pin !== pinFor(picked.birthdate)) return false;
+    sessionStorage.setItem("starjar.kid", picked.id);
+    sounds.good();
+    burst();
+    router.push(`/kid/${picked.id}`);
+    return true;
+  };
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-4xl flex-col items-center px-4 pb-16 pt-8">
+      <SkyBackground />
+      <Link href="/parent" className="btn3d absolute right-4 top-4 bg-white/90 px-4 py-2 text-sm text-purple-800">
+        👨‍👩‍👧 Parents
+      </Link>
+
+      <motion.div
+        initial={{ scale: 0, rotate: -20 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", bounce: 0.6 }}
+        className="mt-10 flex flex-col items-center"
+      >
+        <motion.div animate={{ rotate: [0, -10, 10, 0], y: [0, -10, 0] }} transition={{ duration: 2.5, repeat: Infinity }} className="text-8xl drop-shadow-xl">
+          🫙
+        </motion.div>
+        <h1 className="text-outline mt-2 text-6xl font-bold tracking-wide text-yellow-300 drop-shadow-[0_6px_0_rgba(0,0,0,0.25)] sm:text-7xl">
+          Star Jar
+        </h1>
+        <p className="mt-3 text-2xl font-semibold text-white drop-shadow">Who&apos;s playing today?</p>
+      </motion.div>
+
+      {data.kids.length === 0 ? (
+        <div className="card mt-10 max-w-md p-8 text-center">
+          <div className="text-6xl">👋</div>
+          <p className="mt-3 text-xl font-semibold">Welcome! Ask a grown-up to add players first.</p>
+          <Link href="/parent" className="btn3d mt-6 inline-block bg-yellow-400 px-6 py-3 text-xl">
+            Set up Star Jar →
+          </Link>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      ) : (
+        <div className="mt-10 grid w-full grid-cols-2 gap-5 sm:grid-cols-3">
+          {data.kids.map((kid, i) => (
+            <motion.button
+              key={kid.id}
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 + i * 0.12, type: "spring", bounce: 0.5 }}
+              whileHover={{ scale: 1.06, rotate: i % 2 ? 2 : -2 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => pick(kid)}
+              className="btn3d flex flex-col items-center p-5 text-white"
+              style={{ background: kid.color }}
+            >
+              <motion.span
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 1.6, delay: i * 0.3, repeat: Infinity }}
+                className="flex h-28 w-28 items-center justify-center rounded-full bg-white/90 text-7xl shadow-inner"
+              >
+                {kid.avatar}
+              </motion.span>
+              <span className="mt-3 text-3xl font-bold drop-shadow">{kid.name}</span>
+              <span className="mt-1 rounded-full bg-black/20 px-3 py-0.5 text-lg">⭐ {totalStars(data.entries.filter((e) => e.kidId === kid.id))}</span>
+            </motion.button>
+          ))}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {picked && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 flex items-center justify-center bg-purple-950/60 p-4 backdrop-blur-sm"
+            onClick={() => setPicked(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.3, y: 100 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.3, opacity: 0 }}
+              transition={{ type: "spring", bounce: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
+              className="card relative flex flex-col items-center p-6"
+            >
+              <button onClick={() => setPicked(null)} className="absolute right-4 top-3 text-3xl text-purple-400">
+                ✕
+              </button>
+              <div className="flex h-24 w-24 items-center justify-center rounded-full text-6xl" style={{ background: picked.color }}>
+                {picked.avatar}
+              </div>
+              <h2 className="mt-2 text-3xl font-bold">Hi {picked.name}!</h2>
+              <div className="mt-4">
+                <PinPad onSubmit={submit} hint="Your secret code: birthday day + month 🎂" />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </main>
   );
 }

@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⭐ Star Jar
 
-## Getting Started
+A colorful habit-tracking game for kids. Children tap their avatar, enter their birthday PIN (DDMM),
+and tap activities to earn (or lose) stars, walk the Treasure Road, and unlock badges + real gifts.
 
-First, run the development server:
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+First visit: tap **Parents** → create a parent PIN → add your children (name, birthdate, avatar, color).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy to Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Push this folder to GitHub and import it at vercel.com/new (no env vars needed), or run `npx vercel`.
 
-## Learn More
+## Where is the data?
 
-To learn more about Next.js, take a look at the following resources:
+All data is stored in the **browser's localStorage** on the device being used.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- ✅ Survives new deployments (as long as the domain stays the same).
+- ❌ Not shared between devices, and lost if the browser's site data is cleared.
+- 💾 Use **Parents → Settings → Download backup** regularly; **Restore backup** loads it on any device.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Rules (editable in Parents → Settings)
 
-## Deploy on Vercel
+- Each activity: max **2 times per day**
+- Same activity: at least **10 minutes** apart
+- Any activity: at least **1 minute** apart
+- Parents can add entries from **Log & Gifts** without limits, and undo mistakes.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Code map
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/app/page.tsx`: home (avatar picker + PIN)
+- `src/app/kid/[id]/page.tsx`: kid dashboard (jar, activities, treasure road, badges, timeline)
+- `src/app/parent/page.tsx`: parent zone (kids, activities, milestones, log, settings, backup)
+- `src/lib/defaults.ts`: default activities, milestones, avatars
+- `src/lib/messages.ts`: random happy/sad feedback lines
+- `src/lib/rules.ts`: star totals and tap limits
+- `src/lib/fx.ts`: sounds (Web Audio), voice (speech synthesis), and confetti

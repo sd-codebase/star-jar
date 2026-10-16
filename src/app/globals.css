@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-fredoka);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --sky-a: #7b2ff7;
+  --sky-b: #f107a3;
+  --sky-c: #ff9a00;
+}
+
+html,
+body {
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
+  color: #2b1055;
+  background: linear-gradient(160deg, var(--sky-a) 0%, var(--sky-b) 55%, var(--sky-c) 100%) fixed;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+@layer components {
+/* Chunky candy-style 3D button */
+.btn3d {
+  position: relative;
+  border-radius: 1.5rem;
+  font-weight: 700;
+  transition: transform 80ms ease, box-shadow 80ms ease;
+  box-shadow: 0 7px 0 rgba(0, 0, 0, 0.25), inset 0 -4px 0 rgba(0, 0, 0, 0.12), inset 0 3px 0 rgba(255, 255, 255, 0.45);
+  user-select: none;
+}
+.btn3d:active:not(:disabled) {
+  transform: translateY(5px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25), inset 0 -2px 0 rgba(0, 0, 0, 0.12), inset 0 3px 0 rgba(255, 255, 255, 0.45);
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 2rem;
+  box-shadow: 0 10px 0 rgba(43, 16, 85, 0.18), 0 20px 40px rgba(43, 16, 85, 0.2);
+}
+
+.text-outline {
+  -webkit-text-stroke: 2px #2b1055;
+  paint-order: stroke fill;
+}
+
+.rays {
+  background: repeating-conic-gradient(from 0deg, rgba(255, 230, 0, 0.55) 0deg 12deg, transparent 12deg 24deg);
+  border-radius: 9999px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+}
+
+input,
+select {
+  font: inherit;
 }
