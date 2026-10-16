@@ -215,7 +215,7 @@ function ActivitiesTab({ data }: { data: AppData }) {
           </button>
         </div>
       </div>
-      <p className="mt-1 text-sm text-purple-600">Changes save automatically. Past history keeps its old name & points.</p>
+      <p className="mt-1 text-sm text-purple-600">Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts).</p>
       <ul className="mt-4 space-y-2">
         {data.activities.map((a) => (
           <li key={a.id} className={`flex flex-col gap-2 rounded-2xl p-2 sm:flex-row sm:items-center ${a.kind === "good" ? "bg-green-50" : "bg-red-50"}`}>
@@ -233,7 +233,11 @@ function ActivitiesTab({ data }: { data: AppData }) {
                   update(a.id, { points: n, kind: n < 0 ? "bad" : "good" });
                 }}
               />
-              <span className="flex-1 whitespace-nowrap text-sm font-bold sm:w-16 sm:flex-none">{a.kind === "good" ? "😊 good" : "😟 oops"}</span>
+              <span className="whitespace-nowrap text-sm font-bold sm:w-16">{a.kind === "good" ? "😊 good" : "😟 oops"}</span>
+              <label className="flex flex-1 items-center gap-1 whitespace-nowrap text-sm font-semibold sm:flex-none" title="Hide from kids; only parents can add it">
+                <input type="checkbox" className="h-5 w-5" checked={!!a.parentOnly} onChange={(e) => update(a.id, { parentOnly: e.target.checked || undefined })} />
+                🔒 Parents only
+              </label>
               <button className={`${btn} bg-red-400 px-3`} onClick={() => setData((d) => ({ ...d, activities: d.activities.filter((x) => x.id !== a.id) }))}>
                 ✕
               </button>

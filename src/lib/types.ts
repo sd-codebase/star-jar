@@ -17,6 +17,7 @@ export interface Activity {
   emoji: string;
   points: number; // positive for good, negative for bad
   kind: Kind;
+  parentOnly?: boolean; // hidden from kids (e.g. Bonus) — only parents can award it
 }
 
 export interface Milestone {
@@ -50,6 +51,7 @@ export interface Settings {
 
 export interface AppData {
   version: 1;
+  defaultsRev?: number; // which revision of the built-in activities this data has been upgraded to
   kids: Kid[];
   activities: Activity[];
   milestones: Milestone[];

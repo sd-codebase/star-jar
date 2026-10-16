@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { defaultData } from "./defaults";
+import { DEFAULTS_REV, defaultData, upgradeActivities } from "./defaults";
 import { checkTap, totalStars, type Check } from "./rules";
 import type { AppData, Entry, Milestone } from "./types";
 
@@ -17,6 +17,8 @@ function migrate(raw: Partial<AppData>): AppData {
     ...base,
     ...raw,
     version: 1,
+    activities: upgradeActivities(raw.activities ?? base.activities, raw.defaultsRev ?? 1),
+    defaultsRev: DEFAULTS_REV,
     kids: (raw.kids ?? []).map((k) => ({ ...k, unlocked: k.unlocked ?? {}, giftsGiven: k.giftsGiven ?? {} })),
     settings: { ...base.settings, ...raw.settings },
   };
@@ -26,7 +28,9 @@ function read(): AppData {
   if (cache) return cache;
   try {
     const raw = localStorage.getItem(KEY);
-    cache = raw ? migrate(JSON.parse(raw)) : defaultData();
+    const parsed = raw ? JSON.parse(raw) : null;
+    cache = parsed ? migrate(parsed) : defaultData();
+    if (parsed && parsed.defaultsRev !== DEFAULTS_REV) localStorage.setItem(KEY, JSON.stringify(cache));
   } catch {
     cache = defaultData();
   }
@@ -75,7 +79,7 @@ export function logActivity(kidId: string, activityId: string, byParent = false)
   const data = read();
   const activity = data.activities.find((a) => a.id === activityId);
   const kid = data.kids.find((k) => k.id === kidId);
-  if (!activity || !kid) return null;
+  if (!activity || !kid || (activity.parentOnly && !byParent)) return null;
 
   const kidEntries = data.entries.filter((e) => e.kidId === kidId);
   if (!byParent) {

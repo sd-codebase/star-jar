@@ -58,8 +58,9 @@ export default function KidPage() {
   const progress = next ? total / next.points : 1;
   const today = entries.filter((e) => isToday(e.at, now)).sort((a, b) => b.at - a.at);
   const todayStars = today.reduce((s, e) => s + e.points, 0);
-  const good = data.activities.filter((a) => a.kind === "good");
-  const bad = data.activities.filter((a) => a.kind === "bad");
+  const kidActivities = data.activities.filter((a) => !a.parentOnly);
+  const good = kidActivities.filter((a) => a.kind === "good");
+  const bad = kidActivities.filter((a) => a.kind === "bad");
   const sortedMilestones = [...data.milestones].sort((a, b) => a.points - b.points);
 
   const week = Array.from({ length: 7 }, (_, i) => {
@@ -78,9 +79,9 @@ export default function KidPage() {
       const c = res.check;
       const text =
         c.reason === "daily"
-          ? `You did ${activity.name} ${data.settings.maxPerDay} times today! Come back tomorrow.`
+          ? `${activity.name}: already ${data.settings.maxPerDay} times today! Come back tomorrow.`
           : c.reason === "same"
-            ? `Wait ${formatWait(c.waitMs)} before ${activity.name} again.`
+            ? `Wait ${formatWait(c.waitMs)} to tap ${activity.name} again.`
             : `Take a tiny break! Try again in ${formatWait(c.waitMs)}.`;
       sounds.wrong();
       speak(text);

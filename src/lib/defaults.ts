@@ -4,21 +4,72 @@ export const AVATARS = ["🦁", "🐯", "🐼", "🐨", "🦊", "🐸", "🐵", 
 
 export const COLORS = ["#ff4d6d", "#ff8c00", "#ffc300", "#2ec4b6", "#3a86ff", "#8338ec", "#ff006e", "#06d6a0"];
 
+export const DEFAULTS_REV = 2;
+
 export const DEFAULT_ACTIVITIES: Activity[] = [
-  { id: "early-rise", name: "Early Rise", emoji: "🌅", points: 5, kind: "good" },
-  { id: "early-bed", name: "Early Bed", emoji: "🛏️", points: 5, kind: "good" },
-  { id: "classwork", name: "Classwork", emoji: "📚", points: 5, kind: "good" },
-  { id: "homework", name: "Homework", emoji: "✏️", points: 5, kind: "good" },
-  { id: "brush-teeth", name: "Brush Teeth", emoji: "🪥", points: 5, kind: "good" },
-  { id: "bath", name: "Bath Time", emoji: "🛁", points: 5, kind: "good" },
-  { id: "play-outside", name: "Play Outside", emoji: "⚽", points: 5, kind: "good" },
-  { id: "no-screen", name: "No Screen", emoji: "📵", points: 5, kind: "good" },
-  { id: "fighting", name: "Fighting", emoji: "😠", points: -5, kind: "bad" },
-  { id: "not-listening", name: "Not Listening", emoji: "🙉", points: -5, kind: "bad" },
-  { id: "too-much-screen", name: "Too Much Screen", emoji: "📱", points: -5, kind: "bad" },
-  { id: "tantrum", name: "Tantrum", emoji: "😭", points: -5, kind: "bad" },
-  { id: "messy-room", name: "Messy Room", emoji: "🧸", points: -5, kind: "bad" },
+  { id: "early-rise", name: "Woke Up Early", emoji: "🌅", points: 5, kind: "good" },
+  { id: "early-bed", name: "Slept Early", emoji: "🛏️", points: 5, kind: "good" },
+  { id: "brush-teeth", name: "Brushed Teeth", emoji: "🪥", points: 5, kind: "good" },
+  { id: "bath", name: "Took a Bath", emoji: "🛁", points: 5, kind: "good" },
+  { id: "afternoon-nap", name: "Took a Nap", emoji: "😴", points: 5, kind: "good" },
+  { id: "tiffin-finish", name: "Finished Tiffin", emoji: "🍱", points: 5, kind: "good" },
+  { id: "healthy-fruits", name: "Ate Healthy Fruits", emoji: "🍎", points: 5, kind: "good" },
+  { id: "help-mom", name: "Helped Mom", emoji: "💐", points: 5, kind: "good" },
+  { id: "help-dad", name: "Helped Dad", emoji: "🛠️", points: 5, kind: "good" },
+  { id: "good-behaviour", name: "Behaved Well", emoji: "😇", points: 5, kind: "good" },
+  { id: "classwork", name: "Did Classwork", emoji: "📚", points: 5, kind: "good" },
+  { id: "hindi-homework", name: "Did Hindi Homework", emoji: "📝", points: 5, kind: "good" },
+  { id: "maths-homework", name: "Did Maths Homework", emoji: "🔢", points: 5, kind: "good" },
+  { id: "english-homework", name: "Did English Homework", emoji: "🔤", points: 5, kind: "good" },
+  { id: "evs-homework", name: "Did EVS Homework", emoji: "🌳", points: 5, kind: "good" },
+  { id: "good-handwriting", name: "Wrote Neatly", emoji: "✍️", points: 5, kind: "good" },
+  { id: "school-activities", name: "Joined School Activities", emoji: "🏫", points: 5, kind: "good" },
+  { id: "play-outside", name: "Played Outside", emoji: "⚽", points: 5, kind: "good" },
+  { id: "no-screen", name: "Stayed Off Screens", emoji: "📵", points: 5, kind: "good" },
+  { id: "bonus", name: "Earned a Bonus", emoji: "🎉", points: 5, kind: "good", parentOnly: true },
+  { id: "fighting", name: "Fought", emoji: "😠", points: -5, kind: "bad" },
+  { id: "not-listening", name: "Didn't Listen", emoji: "🙉", points: -5, kind: "bad" },
+  { id: "bad-behaviour", name: "Behaved Badly", emoji: "😤", points: -5, kind: "bad" },
+  { id: "yelled-at-mom", name: "Yelled at Mom", emoji: "🗣️", points: -5, kind: "bad" },
+  { id: "junk-food", name: "Ate Junk Food", emoji: "🍟", points: -5, kind: "bad" },
+  { id: "too-much-screen", name: "Watched Too Much Screen", emoji: "📱", points: -5, kind: "bad" },
+  { id: "tantrum", name: "Threw a Tantrum", emoji: "😭", points: -5, kind: "bad" },
+  { id: "messy-room", name: "Left Room Messy", emoji: "🧸", points: -5, kind: "bad" },
 ];
+
+/** Names shipped in revision 1 — renamed on upgrade only if the parent never edited them. */
+const REV1_NAMES: Record<string, string> = {
+  "early-rise": "Early Rise",
+  "early-bed": "Early Bed",
+  classwork: "Classwork",
+  homework: "Homework",
+  "brush-teeth": "Brush Teeth",
+  bath: "Bath Time",
+  "play-outside": "Play Outside",
+  "no-screen": "No Screen",
+  fighting: "Fighting",
+  "not-listening": "Not Listening",
+  "too-much-screen": "Too Much Screen",
+  tantrum: "Tantrum",
+  "messy-room": "Messy Room",
+};
+
+/** Rev-1 activities replaced by dedicated ones (generic Homework → per-subject homework). */
+const REMOVED_IDS = new Set(["homework"]);
+
+/** Bring saved activities up to the latest built-in list without touching parent customisations. */
+export function upgradeActivities(activities: Activity[], rev: number): Activity[] {
+  if (rev >= DEFAULTS_REV) return activities;
+  const byId = new Map(DEFAULT_ACTIVITIES.map((a) => [a.id, a]));
+  const kept = activities.filter((a) => !(REMOVED_IDS.has(a.id) && REV1_NAMES[a.id] === a.name));
+  const renamed = kept.map((a) => {
+    const def = byId.get(a.id);
+    return def && REV1_NAMES[a.id] === a.name ? { ...a, name: def.name } : a;
+  });
+  const have = new Set(renamed.map((a) => a.id));
+  const added = DEFAULT_ACTIVITIES.filter((a) => !REV1_NAMES[a.id] && !have.has(a.id)).map((a) => ({ ...a }));
+  return [...renamed, ...added];
+}
 
 export const DEFAULT_MILESTONES: Milestone[] = [
   { id: "m25", points: 25, title: "Little Star", badge: "⭐", gift: "Pick a sticker" },
@@ -34,6 +85,7 @@ export const DEFAULT_MILESTONES: Milestone[] = [
 export function defaultData(): AppData {
   return {
     version: 1,
+    defaultsRev: DEFAULTS_REV,
     kids: [],
     activities: DEFAULT_ACTIVITIES.map((a) => ({ ...a })),
     milestones: DEFAULT_MILESTONES.map((m) => ({ ...m })),
