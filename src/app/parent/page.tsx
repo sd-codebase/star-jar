@@ -5,9 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import PinPad from "@/components/PinPad";
 import SkyBackground from "@/components/SkyBackground";
 import { AVATARS, COLORS, defaultData } from "@/lib/defaults";
-import { pinFor, totalStars } from "@/lib/rules";
-import { exportJson, importJson, logActivity, setData, uid, useData } from "@/lib/store";
-import type { Activity, AppData, Kid, Milestone } from "@/lib/types";
+import { isToday, pinFor, totalStars } from "@/lib/rules";
+import { exportJson, importJson, giveBonus, logActivity, removeEntry, setData, uid, useData } from "@/lib/store";
+import type { Activity, AppData, Entry, Kid, Milestone } from "@/lib/types";
 
 const TABS = ["Kids", "Activities", "Milestones", "Log & Gifts", "Settings"] as const;
 type Tab = (typeof TABS)[number];
@@ -298,31 +298,71 @@ function MilestonesTab({ data }: { data: AppData }) {
 function LogTab({ data }: { data: AppData }) {
   const [kidId, setKidId] = useState(data.kids[0]?.id ?? "");
   const [activityId, setActivityId] = useState(data.activities[0]?.id ?? "");
+  const [bonusMsg, setBonusMsg] = useState("");
   const kid = data.kids.find((k) => k.id === kidId);
   if (!kid) return <p>Add a child first.</p>;
 
   const entries = data.entries.filter((e) => e.kidId === kid.id).sort((a, b) => b.at - a.at);
+  const byDay = Object.entries(
+    entries.reduce<Record<string, Entry[]>>((acc, e) => {
+      const day = isToday(e.at) ? "Today" : new Date(e.at).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
+      (acc[day] ??= []).push(e);
+      return acc;
+    }, {}),
+  );
   const gifts = data.milestones.filter((m) => kid.unlocked[m.id] && m.gift).sort((a, b) => a.points - b.points);
 
   return (
     <div>
       <div className="flex flex-wrap gap-2">
         {data.kids.map((k) => (
-          <button key={k.id} onClick={() => setKidId(k.id)} className={`btn3d px-4 py-2 text-white ${k.id === kidId ? "ring-4 ring-purple-900" : "opacity-70"}`} style={{ background: k.color }}>
+          <button key={k.id} onClick={() => {
+              setKidId(k.id);
+              setBonusMsg("");
+            }} className={`btn3d px-4 py-2 text-white ${k.id === kidId ? "ring-4 ring-purple-900" : "opacity-70"}`} style={{ background: k.color }}>
             {k.avatar} {k.name}
           </button>
         ))}
       </div>
 
+      <h3 className="mt-6 text-xl font-bold">🎉 Give a Bonus</h3>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {[5, 10, 20, 50].map((n) => (
+          <button
+            key={n}
+            className={`${btn} bg-gradient-to-br from-yellow-400 to-orange-500 text-lg`}
+            onClick={() => {
+              giveBonus(kid.id, n);
+              setBonusMsg(`✅ +${n} bonus stars for ${kid.name}!`);
+            }}
+          >
+            +{n} ⭐
+          </button>
+        ))}
+      </div>
+      {bonusMsg && <p className="mt-2 font-semibold text-green-700">{bonusMsg}</p>}
+
       <h3 className="mt-6 text-xl font-bold">Add an entry (no time limits)</h3>
       <div className="mt-2 flex flex-wrap gap-2">
         <select className={`${input} flex-1`} value={activityId} onChange={(e) => setActivityId(e.target.value)}>
-          {data.activities.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.emoji} {a.name} ({a.points > 0 ? "+" : ""}
-              {a.points})
-            </option>
-          ))}
+          {(
+            [
+              ["🔒 Parents only", data.activities.filter((a) => a.parentOnly)],
+              ["😊 Good", data.activities.filter((a) => !a.parentOnly && a.kind === "good")],
+              ["😟 Oops", data.activities.filter((a) => !a.parentOnly && a.kind === "bad")],
+            ] as const
+          ).map(([label, list]) =>
+            list.length ? (
+              <optgroup key={label} label={label}>
+                {list.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.emoji} {a.name} ({a.points > 0 ? "+" : ""}
+                    {a.points})
+                  </option>
+                ))}
+              </optgroup>
+            ) : null,
+          )}
         </select>
         <button className={`${btn} bg-purple-600`} onClick={() => logActivity(kid.id, activityId, true)}>
           Add
@@ -363,21 +403,34 @@ function LogTab({ data }: { data: AppData }) {
       </ul>
 
       <h3 className="mt-6 text-xl font-bold">History ({entries.length})</h3>
-      <ul className="mt-2 max-h-[28rem] space-y-1 overflow-y-auto">
-        {entries.map((e) => (
-          <li key={e.id} className="flex items-center gap-2 rounded-xl bg-purple-50 px-3 py-1.5">
-            <span className="text-xl">{e.emoji}</span>
-            <span className="flex-1 font-semibold">
-              {e.name} {e.byParent && <span className="text-xs text-purple-500">(parent)</span>}
-            </span>
-            <span className="text-sm text-purple-600">{new Date(e.at).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</span>
-            <span className={`w-10 text-right font-bold ${e.points > 0 ? "text-green-600" : "text-red-600"}`}>{e.points > 0 ? `+${e.points}` : e.points}</span>
-            <button title="Undo" className="text-red-500" onClick={() => setData((d) => ({ ...d, entries: d.entries.filter((x) => x.id !== e.id) }))}>
-              ✕
-            </button>
-          </li>
+      <p className="text-sm text-purple-600">Tapped something by accident? Remove it here. Stars update instantly.</p>
+      <div className="mt-2 max-h-[32rem] space-y-3 overflow-y-auto">
+        {byDay.map(([day, list]) => (
+          <div key={day}>
+            <div className="sticky top-0 z-10 bg-white/95 py-1 text-sm font-bold text-purple-700">
+              {day} · {list.reduce((s, e) => s + e.points, 0)} ⭐
+            </div>
+            <ul className="space-y-1">
+              {list.map((e) => (
+                <li key={e.id} className="flex items-center gap-2 rounded-xl bg-purple-50 px-3 py-1.5">
+                  <span className="text-xl">{e.emoji}</span>
+                  <span className="min-w-0 flex-1 font-semibold leading-tight">
+                    {e.name} {e.byParent && <span className="text-xs text-purple-500">(parent)</span>}
+                    <span className="block text-xs font-normal text-purple-600">{new Date(e.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+                  </span>
+                  <span className={`w-9 text-right font-bold ${e.points > 0 ? "text-green-600" : "text-red-600"}`}>{e.points > 0 ? `+${e.points}` : e.points}</span>
+                  <button
+                    className="btn3d shrink-0 bg-red-500 px-3 py-1 text-sm text-white"
+                    onClick={() => confirm(`Remove "${e.name}" (${e.points > 0 ? "+" : ""}${e.points}) from ${kid.name}?`) && removeEntry(e.id)}
+                  >
+                    🗑 Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

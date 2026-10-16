@@ -1,19 +1,20 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import ActivityCard from "@/components/ActivityCard";
 import FeedbackOverlay, { type Feedback } from "@/components/FeedbackOverlay";
 import JourneyMap from "@/components/JourneyMap";
 import MilestoneOverlay from "@/components/MilestoneOverlay";
+import PinPad from "@/components/PinPad";
 import SkyBackground from "@/components/SkyBackground";
 import StarJar, { CountUp } from "@/components/StarJar";
 import { burst, sounds, speak } from "@/lib/fx";
 import { badMessage, goodMessage } from "@/lib/messages";
 import { checkTap, dayKey, formatWait, isToday, nextMilestone, totalStars } from "@/lib/rules";
-import { logActivity, uid, useData } from "@/lib/store";
-import type { Activity, Milestone } from "@/lib/types";
+import { logActivity, removeEntry, uid, useData } from "@/lib/store";
+import type { Activity, Entry, Milestone } from "@/lib/types";
 
 function useNow(ms = 1000) {
   const [now, setNow] = useState(() => Date.now());
@@ -39,6 +40,7 @@ export default function KidPage() {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [queue, setQueue] = useState<Milestone[]>([]);
   const [showMilestone, setShowMilestone] = useState(false);
+  const [removing, setRemoving] = useState<Entry | null>(null);
 
   useEffect(() => {
     if (sessionStorage.getItem("starjar.kid") !== id) router.replace("/");
@@ -257,6 +259,13 @@ export default function KidPage() {
                     <span className={`rounded-full px-2 font-bold ${e.points > 0 ? "bg-green-200 text-green-800" : "bg-red-200 text-red-700"}`}>
                       {e.points > 0 ? `+${e.points}` : e.points}
                     </span>
+                    <button
+                      title="Parents: remove this"
+                      onClick={() => setRemoving(e)}
+                      className="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-500 active:bg-purple-200"
+                    >
+                      🔒✕
+                    </button>
                   </motion.li>
                 ))}
               </ol>
@@ -282,6 +291,47 @@ export default function KidPage() {
           </div>
         </Section>
       </div>
+
+      <AnimatePresence>
+        {removing && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setRemoving(null)}
+            className="fixed inset-0 z-40 flex items-center justify-center bg-purple-950/60 p-4 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.5 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ type: "spring", bounce: 0.4 }}
+              onClick={(ev) => ev.stopPropagation()}
+              className="card relative flex max-w-full flex-col items-center p-5"
+            >
+              <button onClick={() => setRemoving(null)} className="absolute right-4 top-3 text-3xl text-purple-400">
+                ✕
+              </button>
+              <div className="text-4xl">🔐</div>
+              <h2 className="mt-1 text-center text-2xl font-bold">Grown-ups only</h2>
+              <p className="mt-1 text-center font-semibold text-purple-700">
+                Remove {removing.emoji} {removing.name} ({removing.points > 0 ? `+${removing.points}` : removing.points})?
+              </p>
+              <div className="mt-3">
+                <PinPad
+                  hint="Enter parent PIN"
+                  onSubmit={(pin) => {
+                    if (!data.settings.parentPin || pin !== data.settings.parentPin) return false;
+                    removeEntry(removing.id);
+                    setRemoving(null);
+                    return true;
+                  }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <FeedbackOverlay feedback={feedback} onClose={closeFeedback} />
       <MilestoneOverlay

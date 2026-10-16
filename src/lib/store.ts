@@ -87,18 +87,20 @@ export function logActivity(kidId: string, activityId: string, byParent = false)
     if (!check.ok) return { ok: false, check };
   }
 
-  const entry: Entry = {
-    id: uid(),
-    kidId,
-    activityId,
-    name: activity.name,
-    emoji: activity.emoji,
-    points: activity.points,
-    kind: activity.kind,
-    at: Date.now(),
-    byParent: byParent || undefined,
-  };
-  const total = totalStars([...kidEntries, entry]);
+  return { ok: true, ...addEntry(kidId, { activityId, name: activity.name, emoji: activity.emoji, points: activity.points, kind: activity.kind, byParent: byParent || undefined }) };
+}
+
+/** Parent-only bonus of any size; works even if the Bonus activity was deleted or renamed. */
+export function giveBonus(kidId: string, points: number) {
+  if (!read().kids.some((k) => k.id === kidId)) return null;
+  return addEntry(kidId, { activityId: "bonus", name: "Earned a Bonus", emoji: "🎉", points, kind: "good", byParent: true });
+}
+
+function addEntry(kidId: string, fields: Omit<Entry, "id" | "kidId" | "at">) {
+  const data = read();
+  const kid = data.kids.find((k) => k.id === kidId)!;
+  const entry: Entry = { id: uid(), kidId, at: Date.now(), ...fields };
+  const total = totalStars([...data.entries.filter((e) => e.kidId === kidId), entry]);
   const unlocked = data.milestones
     .filter((m) => m.points <= total && !kid.unlocked[m.id])
     .sort((a, b) => a.points - b.points);
@@ -112,7 +114,29 @@ export function logActivity(kidId: string, activityId: string, byParent = false)
         : k,
     ),
   }));
-  return { ok: true, entry, total, unlocked };
+  return { entry, total, unlocked };
+}
+
+/**
+ * Remove an accidental entry. Treasures unlocked by that same tap are locked again
+ * if the child no longer has enough stars — unless the parent already handed over the gift.
+ */
+export function removeEntry(entryId: string) {
+  setData((d) => {
+    const entry = d.entries.find((e) => e.id === entryId);
+    if (!entry) return d;
+    const entries = d.entries.filter((e) => e.id !== entryId);
+    const total = totalStars(entries.filter((e) => e.kidId === entry.kidId));
+    const kids = d.kids.map((k) => {
+      if (k.id !== entry.kidId) return k;
+      const unlocked = { ...k.unlocked };
+      for (const m of d.milestones) {
+        if (unlocked[m.id] === entry.at && m.points > total && !k.giftsGiven[m.id]) delete unlocked[m.id];
+      }
+      return { ...k, unlocked };
+    });
+    return { ...d, entries, kids };
+  });
 }
 
 export function exportJson() {
