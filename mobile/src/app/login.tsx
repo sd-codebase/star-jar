@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from "react-native";
 import Animated, { FadeInDown, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Btn3D, BtnText, Card, OutlineText, T } from "@/components/ui";
@@ -79,7 +79,7 @@ export default function LoginScreen() {
         contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 16, paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }}
       >
         <Animated.View style={[{ alignItems: "center" }, logoStyle]}>
-          <T style={{ fontSize: fs["7xl"], lineHeight: fs["7xl"] * 1.2 }}>🫙</T>
+          <Image source={require("../../assets/logo.png")} style={{ width: 96, height: 139 }} />
           <View style={{ marginTop: 4 }}>
             <OutlineText shadow={6} style={{ fontSize: fs["5xl"], lineHeight: fs["5xl"] * 1.15, color: tw.yellow300 }}>
               Star Jar

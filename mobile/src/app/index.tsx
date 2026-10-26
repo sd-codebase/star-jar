@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withDelay, withSpring, ZoomIn, ZoomOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { pinFor, totalStars } from "@shared/rules";
@@ -51,7 +51,7 @@ export default function Home() {
       <ScrollView contentContainerStyle={{ alignItems: "center", paddingHorizontal: 16, paddingTop: insets.top + 32, paddingBottom: insets.bottom + 64 }}>
         <Animated.View style={[{ marginTop: 48, alignItems: "center" }, logoStyle]}>
           <Animated.View style={jarStyle}>
-            <T style={{ fontSize: fs["8xl"], lineHeight: fs["8xl"] * 1.2, textShadowColor: "rgba(0,0,0,0.15)", textShadowOffset: { width: 0, height: 10 }, textShadowRadius: 10 }}>🫙</T>
+            <Image source={require("../../assets/logo.png")} style={{ width: 110, height: 160 }} />
           </Animated.View>
           <View style={{ marginTop: 8 }}>
             <OutlineText shadow={6} style={{ fontSize: fs["5xl"], lineHeight: fs["5xl"] * 1.15, color: tw.yellow300, letterSpacing: 0.5 }}>
