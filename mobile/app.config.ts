@@ -1,0 +1,44 @@
+import type { ConfigContext, ExpoConfig } from "expo/config";
+
+/** Override with EXPO_PUBLIC_API_URL (e.g. http://192.168.1.5:3000) to run against a local Next.js server. */
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "https://star-jar-lovat.vercel.app";
+
+export default ({ config }: ConfigContext): ExpoConfig => ({
+  ...config,
+  name: "Star Jar",
+  slug: "star-jar",
+  scheme: "starjar",
+  version: "1.0.0",
+  orientation: "portrait",
+  icon: "./assets/icon.png",
+  userInterfaceStyle: "light",
+  backgroundColor: "#7b2ff7",
+  ios: {
+    bundleIdentifier: "com.jsleet.starjar",
+    supportsTablet: true,
+    config: { usesNonExemptEncryption: false },
+  },
+  android: {
+    package: "com.jsleet.starjar",
+    adaptiveIcon: {
+      backgroundColor: "#7b2ff7",
+      foregroundImage: "./assets/android-icon-foreground.png",
+      backgroundImage: "./assets/android-icon-background.png",
+      monochromeImage: "./assets/android-icon-monochrome.png",
+    },
+    predictiveBackGestureEnabled: false,
+  },
+  plugins: [
+    "expo-router",
+    "expo-secure-store",
+    "expo-audio",
+    "expo-sharing",
+    "@react-native-community/datetimepicker",
+    "expo-font",
+    ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 160, backgroundColor: "#7b2ff7" }],
+    // Play Store requirement: target Android 16 (API 36).
+    ["expo-build-properties", { android: { targetSdkVersion: 36 } }],
+  ],
+  experiments: { typedRoutes: true },
+  extra: { apiUrl: API_URL },
+});
