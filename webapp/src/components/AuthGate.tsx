@@ -6,20 +6,23 @@ import { useEffect } from "react";
 import SkyBackground from "@/components/SkyBackground";
 import { dismissError, load, useStore } from "@/lib/store";
 
+/** Pages anyone can read without logging in (the Play Store links to them). */
+const PUBLIC = ["/login", "/privacy", "/terms", "/delete-account"];
+
 /** Loads the family once, sends logged-out visitors to /login, and shows request errors as a toast. */
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const { status, error } = useStore();
   const path = usePathname();
   const router = useRouter();
-  const onLogin = path === "/login";
+  const isPublic = PUBLIC.includes(path);
 
   useEffect(() => void load(), []);
   useEffect(() => {
-    if (status === "anon" && !onLogin) router.replace("/login");
-  }, [status, onLogin, router]);
+    if (status === "anon" && !isPublic) router.replace("/login");
+  }, [status, isPublic, router]);
 
   let content: React.ReactNode = children;
-  if (!onLogin && status !== "authed") {
+  if (!isPublic && status !== "authed") {
     content =
       status === "error" ? (
         <main className="flex min-h-screen items-center justify-center p-4">

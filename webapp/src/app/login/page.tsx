@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import SkyBackground from "@/components/SkyBackground";
@@ -140,6 +141,16 @@ export default function LoginPage() {
 
         {error && <p className="mt-3 font-semibold text-red-600">{error}</p>}
       </motion.div>
+      <p className="mt-4 text-center text-sm text-white">
+        By continuing you agree to the{" "}
+        <Link href="/privacy" className="font-bold underline">
+          Privacy policy
+        </Link>{" "}
+        ·{" "}
+        <Link href="/terms" className="font-bold underline">
+          Terms of use
+        </Link>
+      </p>
     </main>
   );
 }

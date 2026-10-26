@@ -19,6 +19,7 @@ import {
   inviteParent,
   lockParent,
   logActivity,
+  deleteAccount,
   logout,
   patchFamily,
   removeEntry,
@@ -698,9 +699,23 @@ function FamilyTab({ data }: { data: AppData }) {
       <section>
         <h2 className="text-2xl font-bold">Account</h2>
         <p className="text-sm text-purple-700">Logged in as +91 {data.me.phone}. You stay logged in while you use Star Jar; after 30 days away you&apos;ll be asked again.</p>
-        <button className={`${btn} mt-2 bg-slate-500`} onClick={() => void logout()}>
-          Log out
-        </button>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button className={`${btn} bg-slate-500`} onClick={() => void logout()}>
+            Log out
+          </button>
+          <button
+            className={`${btn} bg-red-600`}
+            onClick={() =>
+              confirm(
+                data.members.length > 1
+                  ? "Delete your account? You'll leave this family; your co-parents keep the kids and their stars. This can't be undone."
+                  : "Delete your account and ALL family data (kids, stars, history)? This can't be undone.",
+              ) && void deleteAccount()
+            }
+          >
+            Delete my account
+          </button>
+        </div>
       </section>
     </div>
   );
