@@ -10,11 +10,13 @@ import type { FamilySnapshot, MeResponse } from "@shared/api-types";
 import { AVATARS, COLORS } from "@shared/defaults";
 import { isToday, pinFor, totalStars } from "@shared/rules";
 import type { Activity, Entry, Kid, Milestone } from "@shared/types";
+import LegalLinks from "@/components/LegalLinks";
 import PinPad from "@/components/PinPad";
 import { Btn, Btn3D, BtnText, Card, Checkbox, Input, OutlineText, T } from "@/components/ui";
 import {
   acceptInvite,
   changeParentPin,
+  deleteAccount,
   deleteKid,
   exportJson,
   flushFamily,
@@ -688,7 +690,24 @@ function FamilyTab({ data }: { data: AppData }) {
       <View>
         <H2>Account</H2>
         <T style={{ fontSize: fs.sm, color: tw.purple700 }}>Logged in as +91 {data.me.phone}. You stay logged in while you use Star Jar; after 30 days away you&apos;ll be asked again.</T>
-        <Btn bg={tw.slate500} label="Log out" style={{ marginTop: 8, alignSelf: "flex-start" }} onPress={() => void logout()} />
+        <View style={{ marginTop: 8, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <Btn bg={tw.slate500} label="Log out" onPress={() => void logout()} />
+          <Btn
+            bg={tw.red600}
+            label="Delete my account"
+            onPress={async () => {
+              const alone = data.members.length <= 1;
+              const ok = await confirm(
+                alone ? "Delete your account and ALL family data?" : "Delete your account?",
+                alone ? "Kids, stars and history are erased. This can't be undone." : "You'll leave this family; your co-parents keep the kids and their stars. This can't be undone.",
+              );
+              if (ok) void deleteAccount();
+            }}
+          />
+        </View>
+        <View style={{ marginTop: 12, alignItems: "flex-start" }}>
+          <LegalLinks />
+        </View>
       </View>
     </View>
   );

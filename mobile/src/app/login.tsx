@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Image, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from "react-native";
 import Animated, { FadeInDown, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import LegalLinks from "@/components/LegalLinks";
 import { Btn3D, BtnText, Card, OutlineText, T } from "@/components/ui";
 import { useEnter } from "@/lib/anim";
 import { sendOtp, updateMyName, useStore, verifyOtp } from "@/lib/store";
@@ -194,6 +195,9 @@ export default function LoginScreen() {
             )}
           </Card>
         </Animated.View>
+        <View style={{ marginTop: 16 }}>
+          <LegalLinks color={tw.white} prefix="By continuing you agree to the" />
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

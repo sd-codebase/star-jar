@@ -82,6 +82,21 @@ export async function logout() {
   set({ status: "anon", data: null, activeKidId: null });
 }
 
+/** Permanently deletes this parent's account (and the family, if they're its only parent). */
+export async function deleteAccount() {
+  try {
+    await api("/me", { method: "DELETE", pin: parentPin });
+  } catch (e) {
+    report(e);
+    return false;
+  }
+  await setToken(null);
+  setParentPin(null);
+  pending = null;
+  set({ status: "anon", data: null, activeKidId: null });
+  return true;
+}
+
 export const getMe = () => api<MeResponse>("/me");
 
 export function updateMyName(name: string) {

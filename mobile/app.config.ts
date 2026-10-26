@@ -30,11 +30,24 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: "./assets/android-icon-monochrome.png",
     },
     predictiveBackGestureEnabled: false,
+    // Kids app on Play: ask for nothing it doesn't use. These come from Expo/library defaults;
+    // the app never records audio, plays in the background, draws overlays or uses biometrics.
+    blockedPermissions: [
+      "android.permission.RECORD_AUDIO",
+      "android.permission.FOREGROUND_SERVICE",
+      "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+      "android.permission.SYSTEM_ALERT_WINDOW",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.USE_BIOMETRIC",
+      "android.permission.USE_FINGERPRINT",
+    ],
   },
   plugins: [
     "expo-router",
     "expo-secure-store",
-    "expo-audio",
+    // Sound effects only: no microphone, no background playback service.
+    ["expo-audio", { microphonePermission: false, recordAudioAndroid: false, enableBackgroundPlayback: false }],
     "expo-sharing",
     "@react-native-community/datetimepicker",
     "expo-font",
