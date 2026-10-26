@@ -3,7 +3,9 @@ import { z } from "zod";
 
 const id = z.string().min(1).max(64);
 const text = (max: number) => z.string().trim().min(1).max(max);
-const emoji = z.string().min(1).max(16);
+const emoji = z.string().max(16);
+/** Inline-edited labels save on every keystroke, so a momentarily empty one must be accepted. */
+const label = (max: number) => z.string().trim().max(max);
 const pin = z.string().regex(/^\d{4}$/, "PIN must be 4 digits");
 
 export const sendOtpBody = z.object({ phone: z.string() });
@@ -12,7 +14,7 @@ export const meBody = z.object({ name: text(40) });
 
 export const activity = z.object({
   id,
-  name: text(60),
+  name: label(60),
   emoji,
   points: z.number().int().min(-100).max(100),
   kind: z.enum(["good", "bad"]),
@@ -22,7 +24,7 @@ export const activity = z.object({
 export const milestone = z.object({
   id,
   points: z.number().int().min(1).max(100_000),
-  title: text(60),
+  title: label(60),
   badge: emoji,
   gift: z.string().trim().max(100),
 });

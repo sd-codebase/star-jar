@@ -12,8 +12,8 @@ export default function PinPad({
   hint,
 }: {
   length?: number;
-  /** Return true if PIN accepted. */
-  onSubmit: (pin: string) => boolean;
+  /** Return (or resolve) true if PIN accepted. */
+  onSubmit: (pin: string) => boolean | Promise<boolean>;
   hint?: string;
 }) {
   const [pin, setPin] = useState("");
@@ -24,8 +24,8 @@ export default function PinPad({
     const next = (pin + d).slice(0, length);
     setPin(next);
     if (next.length === length) {
-      setTimeout(() => {
-        if (!onSubmit(next)) {
+      setTimeout(async () => {
+        if (!(await onSubmit(next))) {
           sounds.wrong();
           void controls.start({ x: [0, -18, 18, -12, 12, -6, 6, 0], transition: { duration: 0.5 } });
           setPin("");

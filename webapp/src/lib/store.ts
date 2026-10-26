@@ -1,153 +1,258 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { DEFAULTS_REV, defaultData, upgradeActivities } from "./defaults";
-import { checkTap, totalStars, type Check } from "./rules";
-import type { AppData, Entry, Milestone } from "./types";
-
-const KEY = "starjar.v1";
-let cache: AppData | null = null;
-const listeners = new Set<() => void>();
+import type { FamilySnapshot, LogResult, MeResponse, VerifyOtpResponse } from "./api-types";
+import { api, RequestError, setUnauthenticatedHandler } from "./client/api";
+import type { Activity, AppData, Entry, Kid, Milestone, Settings } from "./types";
 
 export { uid } from "./uid";
-import { uid } from "./uid";
 
-function migrate(raw: Partial<AppData>): AppData {
-  const base = defaultData();
-  return {
-    ...base,
-    ...raw,
-    version: 1,
-    activities: upgradeActivities(raw.activities ?? base.activities, raw.defaultsRev ?? 1),
-    defaultsRev: DEFAULTS_REV,
-    kids: (raw.kids ?? []).map((k) => ({ ...k, unlocked: k.unlocked ?? {}, giftsGiven: k.giftsGiven ?? {} })),
-    settings: { ...base.settings, ...raw.settings },
-  };
+export type Status = "loading" | "authed" | "anon" | "error";
+type FamilyPatch = { name?: string; settings?: Partial<Omit<Settings, "parentPin">>; activities?: Activity[]; milestones?: Milestone[] };
+
+interface State {
+  status: Status;
+  data: FamilySnapshot | null;
+  /** Last failed request, shown as a toast. */
+  error: string | null;
 }
 
-function read(): AppData {
-  if (cache) return cache;
-  try {
-    const raw = localStorage.getItem(KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    cache = parsed ? migrate(parsed) : defaultData();
-    if (parsed && parsed.defaultsRev !== DEFAULTS_REV) localStorage.setItem(KEY, JSON.stringify(cache));
-  } catch {
-    cache = defaultData();
-  }
-  return cache;
-}
+let state: State = { status: "loading", data: null, error: null };
+const listeners = new Set<() => void>();
+/** Parent PIN held in memory while the Parent Zone is unlocked; never persisted. */
+let parentPin: string | null = null;
 
-export function getData() {
-  return read();
-}
-
-export function setData(updater: (d: AppData) => AppData) {
-  cache = updater(read());
-  try {
-    localStorage.setItem(KEY, JSON.stringify(cache));
-  } catch {
-    // storage full or blocked — keep in-memory state
-  }
+function set(patch: Partial<State>) {
+  state = { ...state, ...patch };
   listeners.forEach((l) => l());
 }
 
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) {
-      cache = null;
-      listener();
-    }
-  };
-  window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
-  };
+const subscribe = (l: () => void) => (listeners.add(l), () => void listeners.delete(l));
+
+export const useStore = () => useSyncExternalStore(subscribe, () => state, () => state);
+/** The family's data, or null while loading / logged out. */
+export const useData = () => useStore().data;
+export const getData = () => state.data;
+
+setUnauthenticatedHandler(() => {
+  parentPin = null;
+  pending = null;
+  set({ status: "anon", data: null });
+});
+
+let errorTimer: ReturnType<typeof setTimeout> | undefined;
+function report(e: unknown) {
+  const msg = e instanceof RequestError ? e.message : "Something went wrong. Please try again.";
+  if (e instanceof RequestError && e.status === 401) return;
+  clearTimeout(errorTimer);
+  set({ error: msg });
+  errorTimer = setTimeout(() => set({ error: null }), 5000);
+}
+export const dismissError = () => set({ error: null });
+
+/* ---------------- Loading & auth ---------------- */
+
+let loading: Promise<void> | null = null;
+
+export function load() {
+  loading ??= api<FamilySnapshot>("/family")
+    .then((data) => applySnapshot(data))
+    .catch((e) => {
+      if (!(e instanceof RequestError && e.status === 401)) set({ status: "error", error: (e as Error).message });
+    })
+    .finally(() => (loading = null));
+  return loading;
 }
 
-/** null during server render / before hydration. */
-export function useData(): AppData | null {
-  return useSyncExternalStore(subscribe, read, () => null);
+export const sendOtp = (phone: string) => api<{ ok: true }>("/auth/send-otp", { body: { phone } });
+
+export async function verifyOtp(phone: string, otp: string, name?: string) {
+  const res = await api<VerifyOtpResponse>("/auth/verify-otp", { body: { phone, otp, name } });
+  await load();
+  return res;
 }
 
-export type LogResult =
-  | { ok: true; entry: Entry; total: number; unlocked: Milestone[] }
-  | { ok: false; check: Exclude<Check, { ok: true }> };
-
-export function logActivity(kidId: string, activityId: string, byParent = false): LogResult | null {
-  const data = read();
-  const activity = data.activities.find((a) => a.id === activityId);
-  const kid = data.kids.find((k) => k.id === kidId);
-  if (!activity || !kid || (activity.parentOnly && !byParent)) return null;
-
-  const kidEntries = data.entries.filter((e) => e.kidId === kidId);
-  if (!byParent) {
-    const check = checkTap(kidEntries, activity, data.settings);
-    if (!check.ok) return { ok: false, check };
-  }
-
-  return { ok: true, ...addEntry(kidId, { activityId, name: activity.name, emoji: activity.emoji, points: activity.points, kind: activity.kind, byParent: byParent || undefined }) };
+export async function logout() {
+  await api("/auth/logout", { method: "POST" }).catch(() => {});
+  parentPin = null;
+  pending = null;
+  set({ status: "anon", data: null });
 }
 
-/** Parent-only bonus of any size; works even if the Bonus activity was deleted or renamed. */
-export function giveBonus(kidId: string, points: number) {
-  if (!read().kids.some((k) => k.id === kidId)) return null;
-  return addEntry(kidId, { activityId: "bonus", name: "Earned a Bonus", emoji: "🎉", points, kind: "good", byParent: true });
-}
+export const getMe = () => api<MeResponse>("/me");
 
-function addEntry(kidId: string, fields: Omit<Entry, "id" | "kidId" | "at">) {
-  const data = read();
-  const kid = data.kids.find((k) => k.id === kidId)!;
-  const entry: Entry = { id: uid(), kidId, at: Date.now(), ...fields };
-  const total = totalStars([...data.entries.filter((e) => e.kidId === kidId), entry]);
-  const unlocked = data.milestones
-    .filter((m) => m.points <= total && !kid.unlocked[m.id])
-    .sort((a, b) => a.points - b.points);
-
-  setData((d) => ({
-    ...d,
-    entries: [...d.entries, entry],
-    kids: d.kids.map((k) =>
-      k.id === kidId
-        ? { ...k, unlocked: { ...k.unlocked, ...Object.fromEntries(unlocked.map((m) => [m.id, entry.at])) } }
-        : k,
-    ),
-  }));
-  return { entry, total, unlocked };
-}
-
-/**
- * Remove an accidental entry. Treasures unlocked by that same tap are locked again
- * if the child no longer has enough stars — unless the parent already handed over the gift.
- */
-export function removeEntry(entryId: string) {
-  setData((d) => {
-    const entry = d.entries.find((e) => e.id === entryId);
-    if (!entry) return d;
-    const entries = d.entries.filter((e) => e.id !== entryId);
-    const total = totalStars(entries.filter((e) => e.kidId === entry.kidId));
-    const kids = d.kids.map((k) => {
-      if (k.id !== entry.kidId) return k;
-      const unlocked = { ...k.unlocked };
-      for (const m of d.milestones) {
-        if (unlocked[m.id] === entry.at && m.points > total && !k.giftsGiven[m.id]) delete unlocked[m.id];
-      }
-      return { ...k, unlocked };
-    });
-    return { ...d, entries, kids };
+export async function updateMyName(name: string) {
+  return run(async () => {
+    await api("/me", { method: "PATCH", body: { name } });
+    return api<FamilySnapshot>("/family");
   });
 }
 
-export function exportJson() {
-  return JSON.stringify(read(), null, 2);
+/* ---------------- Parent PIN ---------------- */
+
+/** Creates the PIN if the family has none yet; otherwise checks it. On success the Parent Zone is unlocked. */
+export async function unlockParent(pin: string) {
+  try {
+    if (!state.data?.settings.hasParentPin) {
+      await api("/family/pin", { method: "PUT", body: { pin } });
+      set({ data: { ...state.data!, settings: { ...state.data!.settings, hasParentPin: true } } });
+    } else if (!(await checkParentPin(pin))) return false;
+    parentPin = pin;
+    return true;
+  } catch (e) {
+    report(e);
+    return false;
+  }
 }
 
-export function importJson(text: string) {
-  const parsed = JSON.parse(text);
-  if (!Array.isArray(parsed?.kids) || !Array.isArray(parsed?.entries) || !Array.isArray(parsed?.activities)) {
+export const lockParent = () => void (parentPin = null);
+
+export async function checkParentPin(pin: string) {
+  return (await api<{ ok: boolean }>("/family/pin/verify", { body: { pin } })).ok;
+}
+
+export async function changeParentPin(pin: string) {
+  return run(async () => {
+    await api("/family/pin", { method: "PUT", body: { pin }, pin: parentPin });
+    parentPin = pin;
+  });
+}
+
+/* ---------------- Family edits ---------------- */
+
+/**
+ * Inline edits (activity names, settings…) update the screen instantly and are sent
+ * after a short pause, so typing doesn't fire a request per keystroke.
+ */
+let pending: FamilyPatch | null = null;
+let flushTimer: ReturnType<typeof setTimeout> | undefined;
+
+function withPending(d: FamilySnapshot): FamilySnapshot {
+  if (!pending) return d;
+  return {
+    ...d,
+    family: pending.name ? { ...d.family, name: pending.name } : d.family,
+    activities: pending.activities ?? d.activities,
+    milestones: pending.milestones ?? d.milestones,
+    settings: { ...d.settings, ...pending.settings },
+  };
+}
+
+function applySnapshot(data: FamilySnapshot) {
+  set({ status: "authed", data: withPending(data) });
+}
+
+export function patchFamily(patch: FamilyPatch) {
+  pending = { ...pending, ...patch, settings: patch.settings || pending?.settings ? { ...pending?.settings, ...patch.settings } : undefined };
+  set({ data: withPending(state.data!) });
+  clearTimeout(flushTimer);
+  flushTimer = setTimeout(flushFamily, 500);
+}
+
+async function flushFamily() {
+  const body = pending;
+  if (!body) return;
+  try {
+    // The response isn't applied: local state already reflects these edits (and possibly newer ones).
+    await api("/family", { method: "PATCH", body, pin: parentPin });
+    if (pending === body) pending = null;
+  } catch (e) {
+    pending = null;
+    report(e);
+    void load();
+  }
+}
+
+if (typeof window !== "undefined") window.addEventListener("pagehide", () => void flushFamily());
+
+/** Runs a request that returns the whole family; failures become a toast. Resolves true on success. */
+async function run(fn: () => Promise<FamilySnapshot | void>) {
+  try {
+    const data = await fn();
+    if (data) applySnapshot(data);
+    return true;
+  } catch (e) {
+    report(e);
+    return false;
+  }
+}
+
+const parent = (path: string, method: string, body?: unknown) => () => api<FamilySnapshot>(path, { method, body, pin: parentPin });
+
+export function saveKid(k: Pick<Kid, "id" | "name" | "avatar" | "color" | "birthdate">, isNew: boolean) {
+  const body = { name: k.name, avatar: k.avatar, color: k.color, birthdate: k.birthdate };
+  return run(isNew ? parent("/kids", "POST", body) : parent(`/kids/${k.id}`, "PATCH", body));
+}
+
+export const deleteKid = (id: string) => run(parent(`/kids/${id}`, "DELETE"));
+export const setGiftGiven = (kidId: string, milestoneId: string, given: boolean) =>
+  run(parent(`/kids/${kidId}/gifts/${encodeURIComponent(milestoneId)}`, "PUT", { given }));
+export const resetFamily = (scope: "stars" | "everything") => run(parent("/family/reset", "POST", { scope }));
+export const inviteParent = (phone: string) => run(parent("/family/invites", "POST", { phone }));
+export const revokeInvite = (id: string) => run(parent(`/family/invites/${id}`, "DELETE"));
+export const removeMember = (id: string) => run(parent(`/family/members/${id}`, "DELETE"));
+export const acceptInvite = (id: string) => run(() => api<FamilySnapshot>(`/invites/${id}/accept`, { method: "POST" }));
+
+/** Remove an accidental entry. The kid screen passes the PIN it just asked for; the Parent Zone uses the unlocked one. */
+export const removeEntry = (entryId: string, pin = parentPin) =>
+  run(() => api<FamilySnapshot>(`/entries/${entryId}`, { method: "DELETE", pin }));
+
+/* ---------------- Stars ---------------- */
+
+function addLocalEntry(entry: Entry, unlocked: Milestone[]) {
+  const d = state.data!;
+  set({
+    data: {
+      ...d,
+      entries: [...d.entries, entry],
+      kids: d.kids.map((k) =>
+        k.id === entry.kidId && unlocked.length ? { ...k, unlocked: { ...k.unlocked, ...Object.fromEntries(unlocked.map((m) => [m.id, entry.at])) } } : k,
+      ),
+    },
+  });
+}
+
+/** Kid tap (limits enforced by the server) or parent award. Null when the request failed. */
+export async function logActivity(kidId: string, activityId: string, byParent = false): Promise<LogResult | null> {
+  try {
+    const res = await api<LogResult>("/entries", { body: { kidId, activityId, byParent: byParent || undefined }, pin: byParent ? parentPin : undefined });
+    if (res.ok) addLocalEntry(res.entry, res.unlocked);
+    return res;
+  } catch (e) {
+    report(e);
+    return null;
+  }
+}
+
+/** Parent-only bonus of any size; works even if the Bonus activity was deleted or renamed. */
+export async function giveBonus(kidId: string, points: number) {
+  try {
+    const res = await api<Extract<LogResult, { ok: true }>>("/entries/bonus", { body: { kidId, points }, pin: parentPin });
+    addLocalEntry(res.entry, res.unlocked);
+    return res;
+  } catch (e) {
+    report(e);
+    return null;
+  }
+}
+
+/* ---------------- Backup ---------------- */
+
+export async function exportJson() {
+  const data = await api<AppData>("/family/export", { pin: parentPin });
+  return JSON.stringify(data, null, 2);
+}
+
+export async function importJson(text: string) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
     throw new Error("This file doesn't look like a Star Jar backup.");
   }
-  setData(() => migrate(parsed));
+  const p = parsed as Partial<AppData> | null;
+  if (!Array.isArray(p?.kids) || !Array.isArray(p?.entries) || !Array.isArray(p?.activities)) {
+    throw new Error("This file doesn't look like a Star Jar backup.");
+  }
+  applySnapshot(await api<FamilySnapshot>("/family/import", { body: parsed, pin: parentPin }));
 }

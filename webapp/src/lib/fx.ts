@@ -6,7 +6,7 @@ import { getData } from "./store";
 let ctx: AudioContext | null = null;
 
 function audio() {
-  if (!getData().settings.sound) return null;
+  if (!getData()?.settings.sound) return null;
   try {
     ctx ??= new AudioContext();
     if (ctx.state === "suspended") void ctx.resume();
@@ -44,7 +44,7 @@ export const sounds = {
 };
 
 export function speak(text: string) {
-  if (!getData().settings.voice || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  if (!getData()?.settings.voice || typeof window === "undefined" || !("speechSynthesis" in window)) return;
   const clean = text.replace(/[\p{Extended_Pictographic}‍️]/gu, "").trim();
   const u = new SpeechSynthesisUtterance(clean);
   u.rate = 0.95;

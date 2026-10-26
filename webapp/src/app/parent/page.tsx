@@ -1,15 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PinPad from "@/components/PinPad";
 import SkyBackground from "@/components/SkyBackground";
-import { AVATARS, COLORS, defaultData } from "@/lib/defaults";
+import type { FamilySnapshot, MeResponse } from "@/lib/api-types";
+import { AVATARS, COLORS } from "@/lib/defaults";
 import { isToday, pinFor, totalStars } from "@/lib/rules";
-import { exportJson, importJson, giveBonus, logActivity, removeEntry, setData, uid, useData } from "@/lib/store";
-import type { Activity, AppData, Entry, Kid, Milestone } from "@/lib/types";
+import {
+  acceptInvite,
+  changeParentPin,
+  deleteKid,
+  exportJson,
+  getData,
+  getMe,
+  giveBonus,
+  importJson,
+  inviteParent,
+  lockParent,
+  logActivity,
+  logout,
+  patchFamily,
+  removeEntry,
+  removeMember,
+  resetFamily,
+  revokeInvite,
+  saveKid,
+  setGiftGiven,
+  uid,
+  unlockParent,
+  updateMyName,
+  useData,
+} from "@/lib/store";
+import type { Activity, Entry, Kid, Milestone } from "@/lib/types";
 
-const TABS = ["Kids", "Activities", "Milestones", "Log & Gifts", "Settings"] as const;
+type AppData = FamilySnapshot;
+
+const TABS = ["Kids", "Activities", "Milestones", "Log & Gifts", "Family", "Settings"] as const;
 type Tab = (typeof TABS)[number];
 
 const input = "rounded-xl border-2 border-purple-200 bg-white px-3 py-2 outline-none focus:border-purple-500";
@@ -20,12 +47,12 @@ export default function ParentPage() {
   // Unlock lives only in this page's memory: leaving or reloading the Parent Zone always asks for the PIN again.
   const [unlocked, setUnlocked] = useState(false);
   const [tab, setTab] = useState<Tab>("Kids");
-
+  useEffect(() => lockParent, []);
 
   if (!data) return <SkyBackground />;
 
   if (!unlocked) {
-    const creating = !data.settings.parentPin;
+    const creating = !data.settings.hasParentPin;
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         <SkyBackground />
@@ -35,11 +62,10 @@ export default function ParentPage() {
           <div className="mt-4">
             <PinPad
               hint={creating ? "Pick 4 digits the kids don't know" : "Enter parent PIN"}
-              onSubmit={(pin) => {
-                if (creating) setData((d) => ({ ...d, settings: { ...d.settings, parentPin: pin } }));
-                else if (pin !== data.settings.parentPin) return false;
-                setUnlocked(true);
-                return true;
+              onSubmit={async (pin) => {
+                const ok = await unlockParent(pin);
+                if (ok) setUnlocked(true);
+                return ok;
               }}
             />
           </div>
@@ -62,7 +88,10 @@ export default function ParentPage() {
           </Link>
           <button
             className={`${btn} bg-slate-500`}
-            onClick={() => setUnlocked(false)}
+            onClick={() => {
+              lockParent();
+              setUnlocked(false);
+            }}
           >
             🔒 Lock
           </button>
@@ -82,6 +111,7 @@ export default function ParentPage() {
         {tab === "Activities" && <ActivitiesTab data={data} />}
         {tab === "Milestones" && <MilestonesTab data={data} />}
         {tab === "Log & Gifts" && <LogTab data={data} />}
+        {tab === "Family" && <FamilyTab data={data} />}
         {tab === "Settings" && <SettingsTab data={data} />}
       </div>
     </main>
@@ -91,7 +121,7 @@ export default function ParentPage() {
 /* ---------------- Kids ---------------- */
 
 function KidsTab({ data }: { data: AppData }) {
-  const [editing, setEditing] = useState<Kid | null>(null);
+  const [editing, setEditing] = useState<{ kid: Kid; isNew: boolean } | null>(null);
   const blank = (): Kid => ({
     id: uid(),
     name: "",
@@ -103,16 +133,15 @@ function KidsTab({ data }: { data: AppData }) {
     createdAt: Date.now(),
   });
 
-  const save = (k: Kid) => {
-    setData((d) => ({ ...d, kids: d.kids.some((x) => x.id === k.id) ? d.kids.map((x) => (x.id === k.id ? k : x)) : [...d.kids, k] }));
-    setEditing(null);
+  const save = async (k: Kid) => {
+    if (await saveKid(k, editing!.isNew)) setEditing(null);
   };
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-bold">Players</h2>
-        <button className={`${btn} bg-green-500`} onClick={() => setEditing(blank())}>
+        <button className={`${btn} bg-green-500`} onClick={() => setEditing({ kid: blank(), isNew: true })}>
           + Add child
         </button>
       </div>
@@ -128,14 +157,13 @@ function KidsTab({ data }: { data: AppData }) {
                 PIN <b>{pinFor(k.birthdate)}</b> · ⭐ {totalStars(data.entries.filter((e) => e.kidId === k.id))}
               </div>
             </div>
-            <button className={`${btn} bg-blue-500`} onClick={() => setEditing(k)}>
+            <button className={`${btn} bg-blue-500`} onClick={() => setEditing({ kid: k, isNew: false })}>
               Edit
             </button>
             <button
               className={`${btn} bg-red-500`}
               onClick={() => {
-                if (confirm(`Delete ${k.name} and all their stars?`))
-                  setData((d) => ({ ...d, kids: d.kids.filter((x) => x.id !== k.id), entries: d.entries.filter((e) => e.kidId !== k.id) }));
+                if (confirm(`Delete ${k.name} and all their stars?`)) void deleteKid(k.id);
               }}
             >
               ✕
@@ -145,13 +173,14 @@ function KidsTab({ data }: { data: AppData }) {
         {data.kids.length === 0 && <p className="text-purple-500">No players yet. Add your children!</p>}
       </ul>
 
-      {editing && <KidForm kid={editing} onSave={save} onCancel={() => setEditing(null)} />}
+      {editing && <KidForm key={editing.kid.id} kid={editing.kid} onSave={save} onCancel={() => setEditing(null)} />}
     </div>
   );
 }
 
-function KidForm({ kid, onSave, onCancel }: { kid: Kid; onSave: (k: Kid) => void; onCancel: () => void }) {
+function KidForm({ kid, onSave, onCancel }: { kid: Kid; onSave: (k: Kid) => Promise<void>; onCancel: () => void }) {
   const [k, setK] = useState(kid);
+  const [saving, setSaving] = useState(false);
   const valid = k.name.trim() && /^\d{4}-\d{2}-\d{2}$/.test(k.birthdate);
   return (
     <div className="mt-6 rounded-2xl border-4 border-dashed border-purple-300 p-4">
@@ -181,8 +210,16 @@ function KidForm({ kid, onSave, onCancel }: { kid: Kid; onSave: (k: Kid) => void
         ))}
       </div>
       <div className="mt-4 flex gap-2">
-        <button disabled={!valid} className={`${btn} bg-green-500 disabled:opacity-40`} onClick={() => onSave({ ...k, name: k.name.trim() })}>
-          Save
+        <button
+          disabled={!valid || saving}
+          className={`${btn} bg-green-500 disabled:opacity-40`}
+          onClick={async () => {
+            setSaving(true);
+            await onSave({ ...k, name: k.name.trim() });
+            setSaving(false);
+          }}
+        >
+          {saving ? "Saving…" : "Save"}
         </button>
         <button className={`${btn} bg-slate-400`} onClick={onCancel}>
           Cancel
@@ -195,18 +232,18 @@ function KidForm({ kid, onSave, onCancel }: { kid: Kid; onSave: (k: Kid) => void
 /* ---------------- Activities ---------------- */
 
 function ActivitiesTab({ data }: { data: AppData }) {
-  const update = (id: string, patch: Partial<Activity>) =>
-    setData((d) => ({ ...d, activities: d.activities.map((a) => (a.id === id ? { ...a, ...patch } : a)) }));
+  const activities = () => getData()!.activities;
+  const update = (id: string, patch: Partial<Activity>) => patchFamily({ activities: activities().map((a) => (a.id === id ? { ...a, ...patch } : a)) });
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-bold">Activities</h2>
         <div className="flex gap-2">
-          <button className={`${btn} bg-green-500`} onClick={() => setData((d) => ({ ...d, activities: [...d.activities, { id: uid(), name: "New activity", emoji: "🌟", points: 5, kind: "good" }] }))}>
+          <button className={`${btn} bg-green-500`} onClick={() => patchFamily({ activities: [...activities(), { id: uid(), name: "New activity", emoji: "🌟", points: 5, kind: "good" }] })}>
             + Good
           </button>
-          <button className={`${btn} bg-red-500`} onClick={() => setData((d) => ({ ...d, activities: [...d.activities, { id: uid(), name: "New oops", emoji: "😕", points: -5, kind: "bad" }] }))}>
+          <button className={`${btn} bg-red-500`} onClick={() => patchFamily({ activities: [...activities(), { id: uid(), name: "New oops", emoji: "😕", points: -5, kind: "bad" }] })}>
             + Oops
           </button>
         </div>
@@ -225,7 +262,7 @@ function ActivitiesTab({ data }: { data: AppData }) {
                 className={`${input} w-20`}
                 value={a.points}
                 onChange={(e) => {
-                  const n = Number(e.target.value) || 0;
+                  const n = Math.max(-100, Math.min(100, Math.trunc(Number(e.target.value)) || 0));
                   update(a.id, { points: n, kind: n < 0 ? "bad" : "good" });
                 }}
               />
@@ -234,7 +271,7 @@ function ActivitiesTab({ data }: { data: AppData }) {
                 <input type="checkbox" className="h-5 w-5" checked={!!a.parentOnly} onChange={(e) => update(a.id, { parentOnly: e.target.checked || undefined })} />
                 🔒 Parents only
               </label>
-              <button className={`${btn} bg-red-400 px-3`} onClick={() => setData((d) => ({ ...d, activities: d.activities.filter((x) => x.id !== a.id) }))}>
+              <button className={`${btn} bg-red-400 px-3`} onClick={() => patchFamily({ activities: activities().filter((x) => x.id !== a.id) })}>
                 ✕
               </button>
             </div>
@@ -248,8 +285,8 @@ function ActivitiesTab({ data }: { data: AppData }) {
 /* ---------------- Milestones ---------------- */
 
 function MilestonesTab({ data }: { data: AppData }) {
-  const update = (id: string, patch: Partial<Milestone>) =>
-    setData((d) => ({ ...d, milestones: d.milestones.map((m) => (m.id === id ? { ...m, ...patch } : m)) }));
+  const milestones = () => getData()!.milestones;
+  const update = (id: string, patch: Partial<Milestone>) => patchFamily({ milestones: milestones().map((m) => (m.id === id ? { ...m, ...patch } : m)) });
   const sorted = [...data.milestones].sort((a, b) => a.points - b.points);
 
   return (
@@ -259,7 +296,7 @@ function MilestonesTab({ data }: { data: AppData }) {
         <button
           className={`${btn} bg-green-500`}
           onClick={() =>
-            setData((d) => ({ ...d, milestones: [...d.milestones, { id: uid(), points: (sorted.at(-1)?.points ?? 0) + 100, title: "New treasure", badge: "💎", gift: "" }] }))
+            patchFamily({ milestones: [...milestones(), { id: uid(), points: (sorted.at(-1)?.points ?? 0) + 100, title: "New treasure", badge: "💎", gift: "" }] })
           }
         >
           + Add
@@ -275,10 +312,10 @@ function MilestonesTab({ data }: { data: AppData }) {
             </div>
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <label className="flex shrink-0 items-center gap-1 font-bold">
-                <input type="number" className={`${input} w-20`} value={m.points} onChange={(e) => update(m.id, { points: Math.max(1, Number(e.target.value) || 1) })} />⭐
+                <input type="number" className={`${input} w-20`} value={m.points} onChange={(e) => update(m.id, { points: Math.max(1, Math.min(100_000, Math.trunc(Number(e.target.value)) || 1)) })} />⭐
               </label>
               <input className={`${input} min-w-0 flex-1`} placeholder="Real gift…" value={m.gift} onChange={(e) => update(m.id, { gift: e.target.value })} />
-              <button className={`${btn} shrink-0 bg-red-400 px-3`} onClick={() => setData((d) => ({ ...d, milestones: d.milestones.filter((x) => x.id !== m.id) }))}>
+              <button className={`${btn} shrink-0 bg-red-400 px-3`} onClick={() => patchFamily({ milestones: milestones().filter((x) => x.id !== m.id) })}>
                 ✕
               </button>
             </div>
@@ -327,9 +364,8 @@ function LogTab({ data }: { data: AppData }) {
           <button
             key={n}
             className={`${btn} bg-gradient-to-br from-yellow-400 to-orange-500 text-lg`}
-            onClick={() => {
-              giveBonus(kid.id, n);
-              setBonusMsg(`✅ +${n} bonus stars for ${kid.name}!`);
+            onClick={async () => {
+              if (await giveBonus(kid.id, n)) setBonusMsg(`✅ +${n} bonus stars for ${kid.name}!`);
             }}
           >
             +{n} ⭐
@@ -360,7 +396,7 @@ function LogTab({ data }: { data: AppData }) {
             ) : null,
           )}
         </select>
-        <button className={`${btn} bg-purple-600`} onClick={() => logActivity(kid.id, activityId, true)}>
+        <button className={`${btn} bg-purple-600`} onClick={() => void logActivity(kid.id, activityId, true)}>
           Add
         </button>
       </div>
@@ -378,18 +414,7 @@ function LogTab({ data }: { data: AppData }) {
               </span>
               <button
                 className={`${btn} ${given ? "bg-green-500" : "bg-pink-500"}`}
-                onClick={() =>
-                  setData((d) => ({
-                    ...d,
-                    kids: d.kids.map((k) => {
-                      if (k.id !== kid.id) return k;
-                      const g = { ...k.giftsGiven };
-                      if (given) delete g[m.id];
-                      else g[m.id] = Date.now();
-                      return { ...k, giftsGiven: g };
-                    }),
-                  }))
-                }
+                onClick={() => void setGiftGiven(kid.id, m.id, !given)}
               >
                 {given ? "✓ Given" : "Mark given"}
               </button>
@@ -417,7 +442,7 @@ function LogTab({ data }: { data: AppData }) {
                   <span className={`w-9 text-right font-bold ${e.points > 0 ? "text-green-600" : "text-red-600"}`}>{e.points > 0 ? `+${e.points}` : e.points}</span>
                   <button
                     className="btn3d shrink-0 bg-red-500 px-3 py-1 text-sm text-white"
-                    onClick={() => confirm(`Remove "${e.name}" (${e.points > 0 ? "+" : ""}${e.points}) from ${kid.name}?`) && removeEntry(e.id)}
+                    onClick={() => confirm(`Remove "${e.name}" (${e.points > 0 ? "+" : ""}${e.points}) from ${kid.name}?`) && void removeEntry(e.id)}
                   >
                     🗑 Remove
                   </button>
@@ -435,12 +460,20 @@ function LogTab({ data }: { data: AppData }) {
 
 function SettingsTab({ data }: { data: AppData }) {
   const s = data.settings;
-  const set = (patch: Partial<typeof s>) => setData((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
+  const set = (patch: Partial<Omit<typeof s, "hasParentPin">>) => patchFamily({ settings: patch });
   const fileRef = useRef<HTMLInputElement>(null);
   const [msg, setMsg] = useState("");
+  const [changingPin, setChangingPin] = useState(false);
 
-  const download = () => {
-    const blob = new Blob([exportJson()], { type: "application/json" });
+  const download = async () => {
+    let json: string;
+    try {
+      json = await exportJson();
+    } catch (err) {
+      setMsg(`❌ ${(err as Error).message}`);
+      return;
+    }
+    const blob = new Blob([json], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `star-jar-backup-${new Date().toISOString().slice(0, 10)}.json`;
@@ -472,7 +505,7 @@ function SettingsTab({ data }: { data: AppData }) {
           ).map(([key, label]) => (
             <label key={key} className="flex flex-col font-semibold">
               {label}
-              <input type="number" min={0} className={input} value={s[key]} onChange={(e) => set({ [key]: Math.max(0, Number(e.target.value) || 0) })} />
+              <input type="number" min={0} className={input} value={s[key]} onChange={(e) => set({ [key]: Math.max(key === "maxPerDay" ? 1 : 0, Math.min(key === "maxPerDay" ? 50 : 1440, Math.trunc(Number(e.target.value)) || 0)) })} />
             </label>
           ))}
         </div>
@@ -480,18 +513,37 @@ function SettingsTab({ data }: { data: AppData }) {
 
       <section>
         <h2 className="text-2xl font-bold">Parent PIN</h2>
-        <button className={`${btn} mt-2 bg-purple-600`} onClick={() => { set({ parentPin: null }); location.reload(); }}>
-          Change parent PIN
-        </button>
+        {changingPin ? (
+          <div className="mt-2 flex flex-col items-start gap-2">
+            <PinPad
+              hint="Pick a new 4-digit PIN"
+              onSubmit={async (pin) => {
+                const ok = await changeParentPin(pin);
+                if (ok) {
+                  setChangingPin(false);
+                  setMsg("✅ Parent PIN changed for everyone in the family.");
+                }
+                return ok;
+              }}
+            />
+            <button className={`${btn} bg-slate-400`} onClick={() => setChangingPin(false)}>
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button className={`${btn} mt-2 bg-purple-600`} onClick={() => setChangingPin(true)}>
+            Change parent PIN
+          </button>
+        )}
       </section>
 
       <section>
         <h2 className="text-2xl font-bold">Backup 💾</h2>
         <p className="text-sm text-purple-700">
-          Data lives in this browser only. Download a backup regularly; restore it on a new device or if the browser data gets cleared.
+          Your family&apos;s data is saved online and shared with co-parents. Moving from the old Star Jar? Download a backup there, then restore it here.
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
-          <button className={`${btn} bg-blue-500`} onClick={download}>
+          <button className={`${btn} bg-blue-500`} onClick={() => void download()}>
             ⬇ Download backup
           </button>
           <button className={`${btn} bg-orange-500`} onClick={() => fileRef.current?.click()}>
@@ -506,8 +558,9 @@ function SettingsTab({ data }: { data: AppData }) {
               const f = e.target.files?.[0];
               if (!f) return;
               try {
-                if (!confirm("Replace ALL current data with this backup?")) return;
-                importJson(await f.text());
+                if (!confirm("Replace ALL current data with this backup? Co-parents will see the change too.")) return;
+                setMsg("⏳ Restoring…");
+                await importJson(await f.text());
                 setMsg("✅ Backup restored!");
               } catch (err) {
                 setMsg(`❌ ${(err as Error).message}`);
@@ -518,19 +571,196 @@ function SettingsTab({ data }: { data: AppData }) {
           />
         </div>
         {msg && <p className="mt-2 font-semibold">{msg}</p>}
+        <LegacyBrowserData onMessage={setMsg} />
       </section>
 
       <section>
         <h2 className="text-2xl font-bold text-red-600">Danger zone</h2>
         <div className="mt-2 flex flex-wrap gap-2">
-          <button className={`${btn} bg-red-400`} onClick={() => confirm("Clear ALL stars & badges for every child?") && setData((d) => ({ ...d, entries: [], kids: d.kids.map((k) => ({ ...k, unlocked: {}, giftsGiven: {} })) }))}>
+          <button className={`${btn} bg-red-400`} onClick={() => confirm("Clear ALL stars & badges for every child?") && void resetFamily("stars")}>
             Reset all stars
           </button>
-          <button className={`${btn} bg-red-600`} onClick={() => confirm("Erase EVERYTHING (kids, activities, settings)?") && setData(() => defaultData())}>
+          <button className={`${btn} bg-red-600`} onClick={() => confirm("Erase EVERYTHING (kids, activities, settings)?") && void resetFamily("everything")}>
             Factory reset
           </button>
         </div>
       </section>
+    </div>
+  );
+}
+
+/* ---------------- Family ---------------- */
+
+function FamilyTab({ data }: { data: AppData }) {
+  const [phone, setPhone] = useState("");
+  const [myName, setMyName] = useState(data.me.name);
+  const [me, setMe] = useState<MeResponse | null>(null);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    getMe().then(setMe, () => {});
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <section>
+        <h2 className="text-2xl font-bold">Family</h2>
+        <label className="mt-2 flex flex-col font-semibold">
+          Family name
+          <input className={input} maxLength={60} value={data.family.name} onChange={(e) => patchFamily({ name: e.target.value })} />
+        </label>
+        <label className="mt-3 flex flex-col font-semibold">
+          Your name
+          <div className="flex gap-2">
+            <input className={`${input} min-w-0 flex-1`} maxLength={40} value={myName} onChange={(e) => setMyName(e.target.value)} />
+            <button disabled={!myName.trim() || myName.trim() === data.me.name} className={`${btn} bg-green-500 disabled:opacity-40`} onClick={() => void updateMyName(myName.trim())}>
+              Save
+            </button>
+          </div>
+        </label>
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold">Parents</h2>
+        <p className="text-sm text-purple-700">Everyone here sees the same kids and stars, and shares the parent PIN.</p>
+        <ul className="mt-2 space-y-2">
+          {data.members.map((m) => (
+            <li key={m.id} className="flex items-center gap-3 rounded-2xl bg-purple-50 p-2">
+              <span className="text-2xl">🧑</span>
+              <span className="min-w-0 flex-1">
+                <b>{m.name || "Parent"}</b> {m.id === data.me.id && <span className="text-sm text-purple-500">(you)</span>}
+                <span className="block text-sm text-purple-600">+91 {m.phone}</span>
+              </span>
+              {m.id !== data.me.id && (
+                <button className={`${btn} bg-red-400 px-3`} onClick={() => confirm(`Remove ${m.name || m.phone} from this family?`) && void removeMember(m.id)}>
+                  ✕
+                </button>
+              )}
+            </li>
+          ))}
+          {data.invites.map((i) => (
+            <li key={i.id} className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-purple-200 p-2">
+              <span className="text-2xl">✉️</span>
+              <span className="min-w-0 flex-1">
+                <b>+91 {i.phone}</b>
+                <span className="block text-sm text-purple-600">Invited · joins when they log in</span>
+              </span>
+              <button className={`${btn} bg-slate-400 px-3`} onClick={() => void revokeInvite(i.id)}>
+                Cancel
+              </button>
+            </li>
+          ))}
+        </ul>
+        <form
+          className="mt-3 flex gap-2"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (await inviteParent(phone)) {
+              setMsg(`✅ Invited +91 ${phone}. Ask them to log in to Star Jar with that WhatsApp number.`);
+              setPhone("");
+            }
+          }}
+        >
+          <span className="rounded-xl bg-purple-100 px-3 py-2 font-bold text-purple-800">+91</span>
+          <input className={`${input} min-w-0 flex-1`} inputMode="numeric" placeholder="Co-parent's WhatsApp" maxLength={11} value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, ""))} />
+          <button disabled={phone.replace(/\D/g, "").length !== 10} className={`${btn} bg-green-500 disabled:opacity-40`}>
+            Invite
+          </button>
+        </form>
+        {msg && <p className="mt-2 font-semibold text-green-700">{msg}</p>}
+      </section>
+
+      {!!me?.pendingInvites.length && (
+        <section>
+          <h2 className="text-2xl font-bold">Invites for you</h2>
+          <ul className="mt-2 space-y-2">
+            {me.pendingInvites.map((i) => (
+              <li key={i.id} className="flex items-center gap-3 rounded-2xl bg-yellow-50 p-2">
+                <span className="min-w-0 flex-1">
+                  <b>{i.familyName}</b>
+                  {i.invitedBy && <span className="block text-sm text-purple-600">from {i.invitedBy}</span>}
+                </span>
+                <button
+                  className={`${btn} bg-green-500`}
+                  onClick={async () => {
+                    if (!confirm(`Join ${i.familyName}? You'll leave your current family.`)) return;
+                    if (await acceptInvite(i.id)) setMe({ ...me, pendingInvites: me.pendingInvites.filter((x) => x.id !== i.id) });
+                  }}
+                >
+                  Join
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section>
+        <h2 className="text-2xl font-bold">Account</h2>
+        <p className="text-sm text-purple-700">Logged in as +91 {data.me.phone}. You stay logged in while you use Star Jar; after 30 days away you&apos;ll be asked again.</p>
+        <button className={`${btn} mt-2 bg-slate-500`} onClick={() => void logout()}>
+          Log out
+        </button>
+      </section>
+    </div>
+  );
+}
+
+/* ---------------- Old browser-only data ---------------- */
+
+const LEGACY_KEY = "starjar.v1";
+
+/** Star Jar used to keep everything in this browser. If that data is still here, offer to save or import it. */
+function LegacyBrowserData({ onMessage }: { onMessage: (m: string) => void }) {
+  const [legacy, setLegacy] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      setLegacy(localStorage.getItem(LEGACY_KEY));
+    } catch {
+      // storage blocked — nothing to offer
+    }
+  }, []);
+  if (!legacy) return null;
+
+  let kids = 0;
+  try {
+    kids = JSON.parse(legacy).kids?.length ?? 0;
+  } catch {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border-4 border-dashed border-orange-300 bg-orange-50 p-3">
+      <p className="font-semibold">📦 Found older Star Jar data saved in this browser ({kids} {kids === 1 ? "child" : "children"}).</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          className={`${btn} bg-blue-500`}
+          onClick={() => {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([legacy], { type: "application/json" }));
+            a.download = `star-jar-browser-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+          }}
+        >
+          ⬇ Save as file
+        </button>
+        <button
+          className={`${btn} bg-orange-500`}
+          onClick={async () => {
+            if (!confirm("Replace ALL current data with the data saved in this browser? Co-parents will see the change too.")) return;
+            try {
+              onMessage("⏳ Importing…");
+              await importJson(legacy);
+              onMessage("✅ Imported your old Star Jar data!");
+            } catch (err) {
+              onMessage(`❌ ${(err as Error).message}`);
+            }
+          }}
+        >
+          ⬆ Import into my family
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fredoka } from "next/font/google";
+import AuthGate from "@/components/AuthGate";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -23,7 +24,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${fredoka.variable} antialiased`}>{children}</body>
+      <body className={`${fredoka.variable} antialiased`}>
+        <AuthGate>{children}</AuthGate>
+      </body>
     </html>
   );
 }

@@ -25,7 +25,7 @@ export type Check =
   | { ok: false; reason: "same" | "any"; waitMs: number };
 
 /** Kid-tap limits: max N per day per activity, gap between same activity, gap between any activity. */
-export function checkTap(kidEntries: Entry[], activity: Activity, settings: Settings, now = Date.now()): Check {
+export function checkTap(kidEntries: Entry[], activity: Activity, settings: Pick<Settings, "maxPerDay" | "sameGapMin" | "anyGapMin">, now = Date.now()): Check {
   const same = kidEntries.filter((e) => e.activityId === activity.id);
   if (same.filter((e) => isToday(e.at, now)).length >= settings.maxPerDay) return { ok: false, reason: "daily" };
 

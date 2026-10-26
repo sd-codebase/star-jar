@@ -23,7 +23,9 @@ export const GET = authedRoute(async (_req, { user }): Promise<MeResponse> => {
 
 export const PATCH = authedRoute(async (req, { user }) => {
   const { name } = await body(req, meBody);
-  const { users } = await cols();
+  const { users, families } = await cols();
   await users.updateOne({ _id: user._id }, { $set: { name } });
+  // A family created before the parent told us their name gets a friendlier one.
+  if (user.familyId) await families.updateOne({ _id: user.familyId, createdBy: user._id, name: "My family" }, { $set: { name: `${name}'s family` } });
   return { user: person({ ...user, name }) };
 });

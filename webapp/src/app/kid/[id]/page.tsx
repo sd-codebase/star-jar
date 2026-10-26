@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ActivityCard from "@/components/ActivityCard";
 import FeedbackOverlay, { type Feedback } from "@/components/FeedbackOverlay";
 import JourneyMap from "@/components/JourneyMap";
@@ -13,7 +13,7 @@ import StarJar, { CountUp } from "@/components/StarJar";
 import { burst, sounds, speak } from "@/lib/fx";
 import { badMessage, goodMessage } from "@/lib/messages";
 import { checkTap, dayKey, formatWait, isToday, nextMilestone, totalStars } from "@/lib/rules";
-import { logActivity, removeEntry, uid, useData } from "@/lib/store";
+import { checkParentPin, logActivity, removeEntry, uid, useData } from "@/lib/store";
 import type { Activity, Entry, Milestone } from "@/lib/types";
 
 function useNow(ms = 1000) {
@@ -41,6 +41,8 @@ export default function KidPage() {
   const [queue, setQueue] = useState<Milestone[]>([]);
   const [showMilestone, setShowMilestone] = useState(false);
   const [removing, setRemoving] = useState<Entry | null>(null);
+  // One tap at a time: the server decides, so a second tap must wait for the first answer.
+  const tapping = useRef(false);
 
   useEffect(() => {
     if (sessionStorage.getItem("starjar.kid") !== id) router.replace("/");
@@ -74,8 +76,11 @@ export default function KidPage() {
   });
   const weekMax = Math.max(20, ...week.map((w) => w.stars));
 
-  const tap = (activity: Activity, e: React.MouseEvent) => {
-    const res = logActivity(kid.id, activity.id);
+  const tap = async (activity: Activity, e: React.MouseEvent) => {
+    if (tapping.current) return;
+    tapping.current = true;
+    const at = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
+    const res = await logActivity(kid.id, activity.id).finally(() => (tapping.current = false));
     if (!res) return;
     if (!res.ok) {
       const c = res.check;
@@ -92,7 +97,7 @@ export default function KidPage() {
     }
     if (activity.kind === "good") {
       const m = goodMessage(kid.name);
-      burst(e.clientX / window.innerWidth, e.clientY / window.innerHeight);
+      burst(at.x, at.y);
       sounds.good();
       speak(`${m.title} ${m.text} Plus ${activity.points} stars!`);
       setFeedback({ id: uid(), kind: "good", emoji: activity.emoji, points: activity.points, ...m });
@@ -176,7 +181,7 @@ export default function KidPage() {
               maxPerDay={data.settings.maxPerDay}
               doneToday={today.filter((e) => e.activityId === a.id).length}
               check={checkTap(entries, a, data.settings, now)}
-              onTap={(e) => tap(a, e)}
+              onTap={(e) => void tap(a, e)}
             />
           ))}
         </div>
@@ -194,7 +199,7 @@ export default function KidPage() {
                 maxPerDay={data.settings.maxPerDay}
                 doneToday={today.filter((e) => e.activityId === a.id).length}
                 check={checkTap(entries, a, data.settings, now)}
-                onTap={(e) => tap(a, e)}
+                onTap={(e) => void tap(a, e)}
               />
             ))}
           </div>
@@ -320,10 +325,9 @@ export default function KidPage() {
               <div className="mt-3">
                 <PinPad
                   hint="Enter parent PIN"
-                  onSubmit={(pin) => {
-                    if (!data.settings.parentPin || pin !== data.settings.parentPin) return false;
-                    removeEntry(removing.id);
-                    setRemoving(null);
+                  onSubmit={async (pin) => {
+                    if (!(await checkParentPin(pin).catch(() => false))) return false;
+                    if (await removeEntry(removing.id, pin)) setRemoving(null);
                     return true;
                   }}
                 />
