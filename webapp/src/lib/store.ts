@@ -9,7 +9,8 @@ const KEY = "starjar.v1";
 let cache: AppData | null = null;
 const listeners = new Set<() => void>();
 
-export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+export { uid } from "./uid";
+import { uid } from "./uid";
 
 function migrate(raw: Partial<AppData>): AppData {
   const base = defaultData();
