@@ -36,9 +36,16 @@ const STAR_SPOTS = [
   [80, 128], [118, 122], [70, 100], [102, 95], [135, 105], [88, 72],
 ];
 const JAR = "M45 60 Q40 60 40 75 L35 215 Q35 240 60 240 L140 240 Q165 240 165 215 L160 75 Q160 60 155 60 Z";
-const WAVE = "M-200 50 Q-175 38 -150 50 T-100 50 T-50 50 T0 50 T50 50 T100 50 T150 50 T200 50 T250 50 T300 50 V300 H-200 Z";
+/** Wavy liquid surface shifted by (dx, dy). The path itself is animated: transform props
+ *  on an animated <G> don't reach the native SVG view in release builds. */
+function wave(dx: number, dy: number) {
+  "worklet";
+  let d = `M${-200 + dx} ${50 + dy} Q${-175 + dx} ${38 + dy} ${-150 + dx} ${50 + dy}`;
+  for (let x = -100; x <= 300; x += 50) d += ` T${x + dx} ${50 + dy}`;
+  return `${d} V${300 + dy} H${-200 + dx} Z`;
+}
 
-const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 /** A glass jar that fills toward the next milestone (web: h-48 w-40). */
 export default function StarJar({ progress, color, width = 160 }: { progress: number; color: string; width?: number }) {
@@ -51,8 +58,8 @@ export default function StarJar({ progress, color, width = 160 }: { progress: nu
   useEffect(() => {
     level.value = withSpring(top - 50, spring(0.35, 1400));
   }, [level, top]);
-  const wave = useLoop(3000);
-  const liquid = useAnimatedProps(() => ({ translateX: wave.value * 100, translateY: level.value }));
+  const flow = useLoop(3000);
+  const liquid = useAnimatedProps(() => ({ d: wave(flow.value * 100, level.value) }));
 
   return (
     <View style={{ width, height, filter: "drop-shadow(0 20px 13px rgba(0,0,0,0.03)) drop-shadow(0 8px 5px rgba(0,0,0,0.08))" }}>
@@ -68,9 +75,7 @@ export default function StarJar({ progress, color, width = 160 }: { progress: nu
         </Defs>
         <Path d={JAR} fill="rgba(255,255,255,0.55)" stroke="#2b1055" strokeWidth={6} />
         <G clipPath="url(#jar-clip)">
-          <AnimatedG animatedProps={liquid}>
-            <Path d={WAVE} fill="url(#liquid)" />
-          </AnimatedG>
+          <AnimatedPath animatedProps={liquid} fill="url(#liquid)" />
         </G>
         <Rect x={38} y={38} width={124} height={26} rx={10} fill="#ff9f1c" stroke="#2b1055" strokeWidth={6} />
         <Path d="M55 85 L52 200" stroke="white" strokeWidth={8} strokeLinecap="round" opacity={0.7} />

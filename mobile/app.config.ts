@@ -15,11 +15,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   backgroundColor: "#7b2ff7",
   ios: {
     bundleIdentifier: "com.jsleet.starjar",
+    buildNumber: "1",
     supportsTablet: true,
     config: { usesNonExemptEncryption: false },
   },
   android: {
     package: "com.jsleet.starjar",
+    // Bump for every Play Store upload.
+    versionCode: 1,
     adaptiveIcon: {
       backgroundColor: "#7b2ff7",
       foregroundImage: "./assets/android-icon-foreground.png",
@@ -38,6 +41,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 160, backgroundColor: "#7b2ff7" }],
     // Play Store requirement: target Android 16 (API 36).
     ["expo-build-properties", { android: { targetSdkVersion: 36 } }],
+    // Release builds are signed locally with the upload key (no EAS).
+    "./plugins/withReleaseSigning",
   ],
   experiments: { typedRoutes: true },
   extra: { apiUrl: API_URL },
