@@ -1,17 +1,11 @@
 // Renders the app icon, Android adaptive icon layers, splash image and store graphics
 // from one vector drawing of the in-app star jar. Run: node scripts/generate-assets.mjs
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
+import { Buffer } from "node:buffer";
+import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-
-// Text is drawn with Fredoka (the app font): point fontconfig at it before sharp loads.
-const fredoka = createRequire(import.meta.url).resolve("@expo-google-fonts/fredoka/700Bold/Fredoka_700Bold.ttf");
-const fontconf = join(mkdtempSync(join(tmpdir(), "starjar-fonts-")), "fonts.conf");
-writeFileSync(fontconf, `<?xml version="1.0"?><fontconfig><dir>${dirname(fredoka)}</dir><cachedir>${dirname(fontconf)}</cachedir></fontconfig>`);
-process.env.FONTCONFIG_FILE = fontconf;
-const { default: sharp } = await import("sharp");
+import sharp from "sharp";
+import { svgText } from "./svg-text.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const assets = join(root, "assets");
@@ -134,21 +128,13 @@ await out(join(assets, "logo.png"), 400, 580, placed(200, 290, 560));
 // Play Store listing: 512×512 icon, 1024×500 feature graphic.
 await out(join(store, "play-icon-512.png"), 512, 512, background(512, 512) + placed(256, 260, 380), { opaque: true });
 
-const title = (color) =>
-  sharp({ text: { text: `<span foreground="${color}">Star Jar</span>`, font: "Fredoka Bold 128", fontfile: fredoka, rgba: true, dpi: 72 } }).png().toBuffer();
-const tagline = sharp({ text: { text: `<span foreground="#ffffff">Stars for good habits</span>`, font: "Fredoka Bold 44", fontfile: fredoka, rgba: true, dpi: 72 } })
-  .png()
-  .toBuffer();
-const [titleFill, titleShadow, tag] = await Promise.all([title("#fde047"), title(INK), tagline]);
-const feature = join(store, "feature-graphic-1024x500.png");
-await sharp(svg(1024, 500, background(1024, 500, 250, 250) + placed(250, 255, 430)))
-  .composite([
-    { input: titleShadow, left: 478, top: 136 },
-    { input: titleFill, left: 472, top: 128 },
-    { input: tag, left: 480, top: 300 },
-  ])
-  .flatten({ background: SKY[0] })
-  .removeAlpha()
-  .png()
-  .toFile(feature);
-console.log("wrote", feature.replace(root + "/", ""));
+await out(
+  join(store, "feature-graphic-1024x500.png"),
+  1024,
+  500,
+  background(1024, 500, 250, 250) +
+    placed(250, 255, 430) +
+    svgText("Star Jar", { x: 472, y: 250, size: 128, fill: "#fde047", shadow: { color: INK, dx: 6, dy: 8 } }) +
+    svgText("Stars for good habits", { x: 480, y: 340, size: 44, fill: "#ffffff" }),
+  { opaque: true },
+);
