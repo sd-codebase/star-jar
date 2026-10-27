@@ -281,7 +281,7 @@ function ActivitiesTab({ data }: { data: AppData }) {
               </div>
             </li>
           ) : (
-            <li key={a.id} className={`flex items-center gap-3 rounded-2xl p-2 ${a.kind === "good" ? "bg-green-50" : "bg-red-50"}`} title="Built-in activity: it can only be hidden from kids">
+            <li key={a.id} className={`flex items-center gap-3 rounded-2xl p-2 ${a.kind === "good" ? "bg-green-100" : "bg-red-100"}`} title="Built-in activity: it can only be hidden from kids">
               <span className="w-16 shrink-0 text-center text-2xl">{a.emoji}</span>
               <span className="min-w-0 flex-1 font-semibold">{a.name}</span>
               <span className="w-12 text-right font-bold">{a.points > 0 ? `+${a.points}` : a.points}</span>

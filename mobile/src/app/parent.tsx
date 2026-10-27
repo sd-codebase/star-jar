@@ -331,20 +331,20 @@ function ActivitiesTab({ data }: { data: AppData }) {
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <PointsInput width={64} value={a.points} min={-100} max={100} onChange={(n) => update(a.id, { points: n, kind: n < 0 ? "bad" : "good" })} />
-                <T w={700} style={{ fontSize: fs.sm }}>
+                <T w={700} style={{ flex: 1, fontSize: fs.sm }}>
                   {a.kind === "good" ? "😊 good" : "😟 oops"}
                 </T>
+                <Btn bg={tw.red400} label="✕" style={{ paddingHorizontal: 12 }} onPress={() => patchFamily({ activities: latest().activities.filter((x) => x.id !== a.id) })} />
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <T w={700} style={{ fontSize: fs.xs, color: tw.white, backgroundColor: tw.purple600, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: "hidden" }}>
                   ✏️ Custom
                 </T>
-                <View style={{ flex: 1 }}>
-                  <Checkbox checked={!!a.parentOnly} onChange={(v) => update(a.id, { parentOnly: v || undefined })} label={<T w={600} style={{ fontSize: fs.sm }}>🔒 Parents only</T>} />
-                </View>
-                <Btn bg={tw.red400} label="✕" style={{ paddingHorizontal: 12 }} onPress={() => patchFamily({ activities: latest().activities.filter((x) => x.id !== a.id) })} />
+                <Checkbox checked={!!a.parentOnly} onChange={(v) => update(a.id, { parentOnly: v || undefined })} label={<T w={600} style={{ fontSize: fs.sm }}>🔒 Parents only</T>} />
               </View>
             </View>
           ) : (
-            <View key={a.id} style={{ gap: 8, borderRadius: 16, padding: 10, backgroundColor: a.kind === "good" ? tw.green50 : tw.red50 }}>
+            <View key={a.id} style={{ gap: 8, borderRadius: 16, padding: 10, backgroundColor: a.kind === "good" ? tw.green100 : tw.red100 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <T style={{ width: 40, textAlign: "center", fontSize: fs["2xl"], lineHeight: fs["2xl"] * 1.25 }}>{a.emoji}</T>
                 <T w={600} style={{ flex: 1 }}>
