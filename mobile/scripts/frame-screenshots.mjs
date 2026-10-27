@@ -1,5 +1,6 @@
-// Frames raw phone captures (adb screencap, 720×1640) into 1080×1920 Play Store screenshots
-// with a Fredoka caption on the app's sky background. Run: node scripts/frame-screenshots.mjs <raw dir>
+// Frames raw phone captures (adb screencap, 720×1640) into store screenshots with a Fredoka
+// caption on the app's sky background: 1080×1920 for Google Play, or 1206×2622 (6.1"/6.3" iPhone)
+// for the App Store with --ios. Run: node scripts/frame-screenshots.mjs <raw dir> [--ios]
 // Raw files are matched by name: 1-jar.png, 2-earn.png, ... (see SHOTS).
 import { Buffer } from "node:buffer";
 import { mkdirSync } from "node:fs";
@@ -8,20 +9,21 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { svgText } from "./svg-text.mjs";
 
-const raw = process.argv[2];
-if (!raw) throw new Error("usage: node scripts/frame-screenshots.mjs <raw dir>");
-const out = join(dirname(fileURLToPath(import.meta.url)), "..", "store-assets", "screenshots");
+const [raw, flag] = process.argv.slice(2);
+if (!raw) throw new Error("usage: node scripts/frame-screenshots.mjs <raw dir> [--ios]");
+const ios = flag === "--ios";
+const out = join(dirname(fileURLToPath(import.meta.url)), "..", "store-assets", ios ? "screenshots-ios" : "screenshots");
 mkdirSync(out, { recursive: true });
 
-const W = 1080;
-const H = 1920;
+// Canvas, framed-shot width, gap below the shot and caption size, per store. Everything else scales with K.
+const { W, H, SHOT_W, BOTTOM, CAPTION } = ios ? { W: 1206, H: 2622, SHOT_W: 950, BOTTOM: 100, CAPTION: 114 } : { W: 1080, H: 1920, SHOT_W: 760, BOTTOM: 70, CAPTION: 84 };
+const K = SHOT_W / 760;
 const INK = "#2b1055";
 // Capture area kept from each raw shot: below the status bar, above the navigation bar (y 1545).
 const CROP_H = 1440;
-const SHOT_W = 760;
 const SHOT_H = Math.round((CROP_H * SHOT_W) / 720);
-const RADIUS = 44;
-const BORDER = 10;
+const RADIUS = Math.round(44 * K);
+const BORDER = Math.round(10 * K);
 
 // [raw file, crop top, caption]
 const SHOTS = [
@@ -44,21 +46,20 @@ function rays(cx, cy, r, n = 16) {
 }
 
 const left = (W - SHOT_W) / 2;
-const top = H - SHOT_H - 70;
-const CAPTION = 84;
+const top = H - SHOT_H - BOTTOM;
 const frame = (text) => {
   const lines = text.split("\n").length;
   const block = CAPTION * (0.72 + (lines - 1) * 1.15);
-  const caption = svgText(text, { x: W / 2, y: (top - block) / 2 + CAPTION * 0.72, size: CAPTION, fill: "#fde047", center: true, shadow: { color: INK, dx: 5, dy: 7 } });
+  const caption = svgText(text, { x: W / 2, y: (top - block) / 2 + CAPTION * 0.72, size: CAPTION, fill: "#fde047", center: true, shadow: { color: INK, dx: Math.round(5 * K), dy: Math.round(7 * K) } });
   return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
   <defs>
     <linearGradient id="sky" x1="0.2" y1="0" x2="0.8" y2="1">
       <stop offset="0" stop-color="#7b2ff7"/><stop offset="0.55" stop-color="#f107a3"/><stop offset="1" stop-color="#ff9a00"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="${INK}" flood-opacity="0.45"/></filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="${Math.round(18 * K)}" stdDeviation="${Math.round(22 * K)}" flood-color="${INK}" flood-opacity="0.45"/></filter>
   </defs>
   <rect width="${W}" height="${H}" fill="url(#sky)"/>
-  ${rays(W / 2, 200, H * 1.2)}
+  ${rays(W / 2, 200 * K, H * 1.2)}
   ${caption}
   <rect x="${left - BORDER}" y="${top - BORDER}" width="${SHOT_W + 2 * BORDER}" height="${SHOT_H + 2 * BORDER}" rx="${RADIUS + BORDER}" fill="#fff" filter="url(#shadow)"/>
 </svg>`);
@@ -80,5 +81,5 @@ for (const [i, [file, cropTop, text]] of SHOTS.entries()) {
     .removeAlpha()
     .png()
     .toFile(join(out, name));
-  console.log("wrote", `store-assets/screenshots/${name}`);
+  console.log("wrote", `store-assets/${ios ? "screenshots-ios" : "screenshots"}/${name}`);
 }
