@@ -64,21 +64,28 @@ const REMOVED_IDS = new Set(["homework"]);
 const INTRODUCED_IN: Record<string, number> = { breakfast: 3, lunch: 3, dinner: 3 };
 const introducedIn = (id: string) => (REV1_NAMES[id] ? 1 : (INTRODUCED_IN[id] ?? 2));
 
-const DEFAULT_IDS = new Set(DEFAULT_ACTIVITIES.map((a) => a.id));
+const DEFAULT_BY_ID = new Map(DEFAULT_ACTIVITIES.map((a) => [a.id, a]));
+
+export const isBuiltIn = (activityId: string) => DEFAULT_BY_ID.has(activityId);
 
 /**
- * Flags the activities a parent added (anything that isn't a built-in) as `custom`. The server
- * derives this on every save, so a client can't mark a built-in as custom or the other way round.
+ * Built-ins always match their shipped definition (parents can't edit them); everything else is
+ * the parent's own and flagged `custom`. The server applies this on every save and import, so no
+ * client can edit a built-in or mislabel an activity.
  */
-export function markCustom(activities: Activity[]): Activity[] {
-  return activities.map(({ custom, ...a }) => (void custom, DEFAULT_IDS.has(a.id) ? a : { ...a, custom: true }));
+export function normalizeActivities(activities: Activity[]): Activity[] {
+  return activities.map(({ custom, ...a }) => {
+    void custom;
+    const def = DEFAULT_BY_ID.get(a.id);
+    return def ? { ...def } : { ...a, custom: true };
+  });
 }
 
 /** Bring saved activities up to the latest built-in list without touching parent customisations. */
 export function upgradeActivities(activities: Activity[], rev: number): Activity[] {
   if (rev >= DEFAULTS_REV) return activities;
-  // Rev 4 adds no built-ins; it only marks the activities parents added as custom.
-  if (rev === 3) return markCustom(activities);
+  // Rev 4 adds no built-ins; it resets edited built-ins and marks the activities parents added as custom.
+  if (rev === 3) return normalizeActivities(activities);
   const byId = new Map(DEFAULT_ACTIVITIES.map((a) => [a.id, a]));
   let result = activities;
   if (rev < 2) {
@@ -100,7 +107,7 @@ export function upgradeActivities(activities: Activity[], rev: number): Activity
     });
     result.splice(at + 1, 0, { ...def });
   });
-  return markCustom(result);
+  return normalizeActivities(result);
 }
 
 export const DEFAULT_MILESTONES: Milestone[] = [

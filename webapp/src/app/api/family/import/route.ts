@@ -1,4 +1,4 @@
-import { DEFAULTS_REV, defaultData, markCustom, upgradeActivities } from "@/lib/defaults";
+import { DEFAULTS_REV, defaultData, normalizeActivities, upgradeActivities } from "@/lib/defaults";
 import { cols } from "@/lib/server/db";
 import { familyOf, requireParent, snapshot } from "@/lib/server/family";
 import { authedRoute, body } from "@/lib/server/http";
@@ -28,8 +28,8 @@ export const POST = authedRoute(async (req, { user }) => {
     { _id: fam._id },
     {
       $set: {
-        // Re-derive `custom`: the file may predate it or have been edited by hand.
-        activities: markCustom(upgradeActivities(b.activities, b.defaultsRev ?? 1)),
+        // Re-derive built-ins and `custom`: the file may predate them or have been edited by hand.
+        activities: normalizeActivities(upgradeActivities(b.activities, b.defaultsRev ?? 1)),
         milestones: b.milestones ?? d.milestones,
         settings: { ...d.settings, ...b.settings, parentPin: b.settings?.parentPin ?? fam.settings.parentPin },
         defaultsRev: DEFAULTS_REV,

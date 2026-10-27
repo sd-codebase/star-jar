@@ -249,36 +249,47 @@ function ActivitiesTab({ data }: { data: AppData }) {
           </button>
         </div>
       </div>
-      <p className="mt-1 text-sm text-purple-600">Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts). ✏️ Custom = added by you, and only your family sees it.</p>
+      <p className="mt-1 text-sm text-purple-600">Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts). Built-in activities (green and red) are fixed. ✏️ Custom ones (purple) are
+        yours: only your family sees them, and you can edit or delete them.</p>
       <ul className="mt-4 space-y-2">
-        {data.activities.map((a) => (
-          <li key={a.id} className={`flex flex-col gap-2 rounded-2xl p-2 sm:flex-row sm:items-center ${a.kind === "good" ? "bg-green-50" : "bg-red-50"}`}>
-            <div className="flex min-w-0 flex-1 gap-2">
-              <input className={`${input} w-16 shrink-0 text-center text-2xl`} value={a.emoji} onChange={(e) => update(a.id, { emoji: e.target.value })} />
-              <input className={`${input} min-w-0 flex-1`} value={a.name} onChange={(e) => update(a.id, { name: e.target.value })} />
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                className={`${input} w-20`}
-                value={a.points}
-                onChange={(e) => {
-                  const n = Math.max(-100, Math.min(100, Math.trunc(Number(e.target.value)) || 0));
-                  update(a.id, { points: n, kind: n < 0 ? "bad" : "good" });
-                }}
-              />
+        {data.activities.map((a) =>
+          a.custom ? (
+            <li key={a.id} className="flex flex-col gap-2 rounded-2xl bg-purple-100 p-2 ring-2 ring-purple-300 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 flex-1 gap-2">
+                <input className={`${input} w-16 shrink-0 text-center text-2xl`} value={a.emoji} onChange={(e) => update(a.id, { emoji: e.target.value })} />
+                <input className={`${input} min-w-0 flex-1`} value={a.name} onChange={(e) => update(a.id, { name: e.target.value })} />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  className={`${input} w-20`}
+                  value={a.points}
+                  onChange={(e) => {
+                    const n = Math.max(-100, Math.min(100, Math.trunc(Number(e.target.value)) || 0));
+                    update(a.id, { points: n, kind: n < 0 ? "bad" : "good" });
+                  }}
+                />
+                <span className="whitespace-nowrap text-sm font-bold sm:w-16">{a.kind === "good" ? "😊 good" : "😟 oops"}</span>
+                <span className="whitespace-nowrap rounded-full bg-purple-600 px-2 py-0.5 text-xs font-bold text-white">✏️ Custom</span>
+                <label className="flex flex-1 items-center gap-1 whitespace-nowrap text-sm font-semibold sm:flex-none" title="Hide from kids; only parents can add it">
+                  <input type="checkbox" className="h-5 w-5" checked={!!a.parentOnly} onChange={(e) => update(a.id, { parentOnly: e.target.checked || undefined })} />
+                  🔒 Parents only
+                </label>
+                <button className={`${btn} bg-red-400 px-3`} onClick={() => patchFamily({ activities: activities().filter((x) => x.id !== a.id) })}>
+                  ✕
+                </button>
+              </div>
+            </li>
+          ) : (
+            <li key={a.id} className={`flex items-center gap-3 rounded-2xl p-2 ${a.kind === "good" ? "bg-green-50" : "bg-red-50"}`} title="Built-in activity: it can't be changed or deleted">
+              <span className="w-16 shrink-0 text-center text-2xl">{a.emoji}</span>
+              <span className="min-w-0 flex-1 font-semibold">{a.name}</span>
+              <span className="w-12 text-right font-bold">{a.points > 0 ? `+${a.points}` : a.points}</span>
               <span className="whitespace-nowrap text-sm font-bold sm:w-16">{a.kind === "good" ? "😊 good" : "😟 oops"}</span>
-              {a.custom && <span className="whitespace-nowrap rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">✏️ Custom</span>}
-              <label className="flex flex-1 items-center gap-1 whitespace-nowrap text-sm font-semibold sm:flex-none" title="Hide from kids; only parents can add it">
-                <input type="checkbox" className="h-5 w-5" checked={!!a.parentOnly} onChange={(e) => update(a.id, { parentOnly: e.target.checked || undefined })} />
-                🔒 Parents only
-              </label>
-              <button className={`${btn} bg-red-400 px-3`} onClick={() => patchFamily({ activities: activities().filter((x) => x.id !== a.id) })}>
-                ✕
-              </button>
-            </div>
-          </li>
-        ))}
+              {a.parentOnly && <span className="whitespace-nowrap text-sm font-semibold">🔒 Parents only</span>}
+            </li>
+          ),
+        )}
       </ul>
     </div>
   );
