@@ -69,22 +69,26 @@ const DEFAULT_BY_ID = new Map(DEFAULT_ACTIVITIES.map((a) => [a.id, a]));
 export const isBuiltIn = (activityId: string) => DEFAULT_BY_ID.has(activityId);
 
 /**
- * Built-ins always match their shipped definition (parents can't edit them); everything else is
- * the parent's own and flagged `custom`. The server applies this on every save and import, so no
- * client can edit a built-in or mislabel an activity.
+ * Built-ins always match their shipped definition: parents can only hide them from kids (`parentOnly`).
+ * Everything else is the parent's own and flagged `custom`. The server applies this on every save and
+ * import, so no client can edit a built-in or mislabel an activity.
  */
 export function normalizeActivities(activities: Activity[]): Activity[] {
   return activities.map(({ custom, ...a }) => {
     void custom;
     const def = DEFAULT_BY_ID.get(a.id);
-    return def ? { ...def } : { ...a, custom: true };
+    if (!def) return { ...a, custom: true };
+    // The parent decides who sees it; Bonus just starts out hidden in a new family.
+    const { parentOnly, ...fixed } = def;
+    void parentOnly;
+    return a.parentOnly ? { ...fixed, parentOnly: true } : fixed;
   });
 }
 
 /** Bring saved activities up to the latest built-in list without touching parent customisations. */
 export function upgradeActivities(activities: Activity[], rev: number): Activity[] {
   if (rev >= DEFAULTS_REV) return activities;
-  // Rev 4 adds no built-ins; it resets edited built-ins and marks the activities parents added as custom.
+  // Rev 4 adds no built-ins; it resets edited built-ins (keeping "parents only") and marks the activities parents added as custom.
   if (rev === 3) return normalizeActivities(activities);
   const byId = new Map(DEFAULT_ACTIVITIES.map((a) => [a.id, a]));
   let result = activities;

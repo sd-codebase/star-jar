@@ -318,7 +318,8 @@ function ActivitiesTab({ data }: { data: AppData }) {
       </View>
       <Hint>
         Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts). Built-in
-        activities (green and red) are fixed. ✏️ Custom ones (purple) are yours: only your family sees them, and you can edit or delete them.
+        activities (green and red) are fixed, but you can hide them from kids. ✏️ Custom ones (purple) are yours: only your family sees them, and you can edit
+        or delete them.
       </Hint>
       <View style={{ marginTop: 16, gap: 8 }}>
         {data.activities.map((a) =>
@@ -343,16 +344,20 @@ function ActivitiesTab({ data }: { data: AppData }) {
               </View>
             </View>
           ) : (
-            <View key={a.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 16, padding: 10, backgroundColor: a.kind === "good" ? tw.green50 : tw.red50 }}>
-              <T style={{ width: 40, textAlign: "center", fontSize: fs["2xl"], lineHeight: fs["2xl"] * 1.25 }}>{a.emoji}</T>
-              <T w={600} style={{ flex: 1 }}>
-                {a.name}
-                {a.parentOnly ? "  🔒" : ""}
-              </T>
-              <T w={700}>{a.points > 0 ? `+${a.points}` : a.points}</T>
-              <T w={700} style={{ fontSize: fs.sm }}>
-                {a.kind === "good" ? "😊 good" : "😟 oops"}
-              </T>
+            <View key={a.id} style={{ gap: 8, borderRadius: 16, padding: 10, backgroundColor: a.kind === "good" ? tw.green50 : tw.red50 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <T style={{ width: 40, textAlign: "center", fontSize: fs["2xl"], lineHeight: fs["2xl"] * 1.25 }}>{a.emoji}</T>
+                <T w={600} style={{ flex: 1 }}>
+                  {a.name}
+                </T>
+                <T w={700}>{a.points > 0 ? `+${a.points}` : a.points}</T>
+                <T w={700} style={{ fontSize: fs.sm }}>
+                  {a.kind === "good" ? "😊 good" : "😟 oops"}
+                </T>
+              </View>
+              <View style={{ marginLeft: 50 }}>
+                <Checkbox checked={!!a.parentOnly} onChange={(v) => update(a.id, { parentOnly: v || undefined })} label={<T w={600} style={{ fontSize: fs.sm }}>🔒 Parents only</T>} />
+              </View>
             </View>
           ),
         )}

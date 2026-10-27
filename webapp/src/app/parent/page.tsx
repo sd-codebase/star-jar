@@ -249,8 +249,8 @@ function ActivitiesTab({ data }: { data: AppData }) {
           </button>
         </div>
       </div>
-      <p className="mt-1 text-sm text-purple-600">Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts). Built-in activities (green and red) are fixed. ✏️ Custom ones (purple) are
-        yours: only your family sees them, and you can edit or delete them.</p>
+      <p className="mt-1 text-sm text-purple-600">Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts). Built-in activities (green and red) are fixed, but you can hide them from kids.
+        ✏️ Custom ones (purple) are yours: only your family sees them, and you can edit or delete them.</p>
       <ul className="mt-4 space-y-2">
         {data.activities.map((a) =>
           a.custom ? (
@@ -281,12 +281,15 @@ function ActivitiesTab({ data }: { data: AppData }) {
               </div>
             </li>
           ) : (
-            <li key={a.id} className={`flex items-center gap-3 rounded-2xl p-2 ${a.kind === "good" ? "bg-green-50" : "bg-red-50"}`} title="Built-in activity: it can't be changed or deleted">
+            <li key={a.id} className={`flex items-center gap-3 rounded-2xl p-2 ${a.kind === "good" ? "bg-green-50" : "bg-red-50"}`} title="Built-in activity: it can only be hidden from kids">
               <span className="w-16 shrink-0 text-center text-2xl">{a.emoji}</span>
               <span className="min-w-0 flex-1 font-semibold">{a.name}</span>
               <span className="w-12 text-right font-bold">{a.points > 0 ? `+${a.points}` : a.points}</span>
               <span className="whitespace-nowrap text-sm font-bold sm:w-16">{a.kind === "good" ? "😊 good" : "😟 oops"}</span>
-              {a.parentOnly && <span className="whitespace-nowrap text-sm font-semibold">🔒 Parents only</span>}
+              <label className="flex items-center gap-1 whitespace-nowrap text-sm font-semibold" title="Hide from kids; only parents can add it">
+                <input type="checkbox" className="h-5 w-5" checked={!!a.parentOnly} onChange={(e) => update(a.id, { parentOnly: e.target.checked || undefined })} />
+                🔒 Parents only
+              </label>
             </li>
           ),
         )}
