@@ -53,6 +53,8 @@ Everything the Play Console asks for, in one place. Keep it in step with the app
 
 - **Graphics:** `play-icon-512.png`, `feature-graphic-1024x500.png`, and phone screenshots
   `screenshots/01-…06-*.png` (upload in that order).
+- **AI asset declaration:** Don't label assets. The screenshots are real captures and the
+  graphics are drawn by scripts (`scripts/frame-screenshots.mjs`), not a generative model.
 
 ## App access (for the review team)
 
@@ -68,19 +70,22 @@ No, the app contains no ads.
 
 ## Content rating (IARC questionnaire)
 
-Category: Utility / Productivity / Communication / Other. Answer **No** to everything:
+Category: All Other App Types. Answer **No** to everything:
 violence, fear, sexuality, gambling, drugs, language, crude humour, user-to-user
 interaction or communication, sharing location, digital purchases, and unrestricted
-internet access. Expected rating: Everyone / 3+.
+internet access. Also No to cash rewards or gift cards (gifts are promised by parents, not
+paid out by the app) and to "primarily news or educational". Result: All ages (Brazil: L).
 
 ## Target audience and content
 
-- **Target age groups:** Parents are the account holders; kids use the app with them.
-  Select **5 and under, 6–8, 9–12** and **18 and over**. Including children's ages puts the
-  app under the **Families policy**. Star Jar complies: no ads, no third-party SDKs that
-  collect data, no device identifiers, and policies linked in the app (Login screen, and
-  Parent Zone → Family).
-- **Appeal to children:** Yes.
+- **Target age groups:** **5 and under, 6–8, 9–12**. Play only accepts consecutive age
+  groups, so 18 and over is left out; parents still use the app as account holders.
+  Including children's ages puts the app under the **Families policy**. Star Jar complies:
+  no ads, no third-party SDKs that collect data, no device identifiers, and policies linked
+  in the app (Login screen, and Parent Zone → Family).
+- The under-13 groups unlock only after the content rating is submitted.
+- **App details:** certify compliance with children's privacy laws (COPPA, GDPR).
+- **Teacher Approved program:** not joined (can opt in later under Policy and programs).
 - Declare that the app does not use the device's advertising ID.
 
 ## Data safety
@@ -90,6 +95,7 @@ internet access. Expected rating: Everyone / 3+.
   behalf, which Play doesn't count as sharing.
 - Data encrypted in transit: **Yes** (HTTPS only).
 - Users can request deletion: **Yes** (in app, and at the account deletion URL).
+- Show "Committed to follow the Play Families policy" in the Data safety section: **Yes**.
 
 | Data type | Collected | Required | Purpose | What it is |
 |---|---|---|---|---|
