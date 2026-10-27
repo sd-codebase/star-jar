@@ -1,5 +1,5 @@
 import { Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold, useFonts } from "@expo-google-fonts/fredoka";
-import { Stack } from "expo-router";
+import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -13,6 +13,9 @@ import { dismissError, load, useStore } from "@/lib/store";
 import { fs, tw } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
+
+// iOS paints the native stack container with the theme background, which would cover SkyBackground.
+const theme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: "transparent" } };
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold });
@@ -30,27 +33,29 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
-      <View style={{ flex: 1 }}>
-        <SkyBackground />
-        {ready &&
-          (status === "error" ? (
-            <LoadError />
-          ) : (
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "transparent" }, animation: "fade" }}>
-              <Stack.Protected guard={inApp}>
-                <Stack.Screen name="index" />
-                <Stack.Screen name="kid/[id]" />
-                <Stack.Screen name="parent" />
-              </Stack.Protected>
-              <Stack.Protected guard={!inApp}>
-                <Stack.Screen name="login" />
-              </Stack.Protected>
-            </Stack>
-          ))}
-        <ConfettiHost />
-        <Toast />
-      </View>
+      <ThemeProvider value={theme}>
+        <StatusBar style="light" />
+        <View style={{ flex: 1 }}>
+          <SkyBackground />
+          {ready &&
+            (status === "error" ? (
+              <LoadError />
+            ) : (
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "transparent" }, animation: "fade" }}>
+                <Stack.Protected guard={inApp}>
+                  <Stack.Screen name="index" />
+                  <Stack.Screen name="kid/[id]" />
+                  <Stack.Screen name="parent" />
+                </Stack.Protected>
+                <Stack.Protected guard={!inApp}>
+                  <Stack.Screen name="login" />
+                </Stack.Protected>
+              </Stack>
+            ))}
+          <ConfettiHost />
+          <Toast />
+        </View>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

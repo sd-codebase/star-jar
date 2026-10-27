@@ -16,7 +16,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     bundleIdentifier: "com.jsleet.starjar",
     buildNumber: "1",
-    supportsTablet: true,
+    // iPhone only: no iPad screenshots or iPad layout review. iPads run it in iPhone mode.
+    supportsTablet: false,
     config: { usesNonExemptEncryption: false },
   },
   android: {
