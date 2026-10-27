@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
-import { sounds } from "@/lib/fx";
+import { sounds, UNLOCK_HOLD_MS } from "@/lib/fx";
 import { fs, tw } from "@/theme";
 import { Btn3D, T } from "./ui";
 
@@ -11,11 +11,14 @@ const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", ""];
 export default function PinPad({
   length = 4,
   onSubmit,
+  onUnlock,
   hint,
 }: {
   length?: number;
   /** Return (or resolve) true if PIN accepted. */
   onSubmit: (pin: string) => boolean | Promise<boolean>;
+  /** Runs a moment after an accepted PIN, once the unlock sound has had time to play (e.g. to change screen). */
+  onUnlock?: (pin: string) => void;
   hint?: string;
 }) {
   const [pin, setPin] = useState("");
@@ -25,13 +28,16 @@ export default function PinPad({
   const press = (d: string) => {
     // Full means it's being checked; extra taps would resubmit the same PIN.
     if (pin.length >= length) return;
-    sounds.tap();
+    sounds.key();
     const next = (pin + d).slice(0, length);
     setPin(next);
     if (next.length === length) {
       setTimeout(async () => {
-        if (!(await onSubmit(next))) {
-          sounds.wrong();
+        if (await onSubmit(next)) {
+          sounds.unlock();
+          if (onUnlock) setTimeout(() => onUnlock(next), UNLOCK_HOLD_MS);
+        } else {
+          sounds.denied();
           const step = (x: number) => withTiming(x, { duration: 60 });
           shake.value = withSequence(step(-18), step(18), step(-12), step(12), step(-6), step(6), step(0));
           setPin("");

@@ -2,10 +2,9 @@ import { useEffect, useState } from "react";
 import { BackHandler, Pressable, ScrollView, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { milestoneMessage } from "@shared/messages";
 import type { Milestone } from "@shared/types";
 import { kf, useEnter, useLoop } from "@/lib/anim";
-import { fireworks, sounds, speak } from "@/lib/fx";
+import { fireworks, sounds } from "@/lib/fx";
 import { fs, spring, tw } from "@/theme";
 import Rays from "./Rays";
 import { Btn3D, OutlineText, T } from "./ui";
@@ -24,15 +23,17 @@ export default function MilestoneOverlay({ milestone, kidName, onDone }: { miles
   }, [milestone]);
 
   const tapGift = () => {
-    sounds.tap();
-    if (taps < 2) return setTaps((t) => t + 1);
+    if (taps < 2) {
+      sounds.giftTap();
+      return setTaps((t) => t + 1);
+    }
     setOpened(true);
     sounds.fanfare();
     fireworks();
-    if (milestone) void speak(`${milestoneMessage(kidName)} You got the ${milestone.title} badge!${milestone.gift ? ` And your gift is ${milestone.gift}!` : ""}`);
   };
 
   const done = () => {
+    sounds.close();
     setOpened(false);
     setTaps(0);
     onDone();
@@ -76,7 +77,7 @@ export default function MilestoneOverlay({ milestone, kidName, onDone }: { miles
                     </T>
                   </Btn3D>
                 ) : null}
-                <Btn3D bg={tw.green400} scale={0.9} onPress={done} style={{ marginTop: 20, paddingHorizontal: 40, paddingVertical: 12 }}>
+                <Btn3D bg={tw.green400} scale={0.9} silent onPress={done} style={{ marginTop: 20, paddingHorizontal: 40, paddingVertical: 12 }}>
                   <T w={700} style={{ fontSize: fs["3xl"], color: tw.white }}>
                     Yay! 🥳
                   </T>

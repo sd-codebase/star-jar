@@ -14,7 +14,7 @@ import PinPad from "@/components/PinPad";
 import StarJar, { CountUp } from "@/components/StarJar";
 import { Btn3D, Card, OutlineText, T } from "@/components/ui";
 import { kf, useLoop } from "@/lib/anim";
-import { burst, sounds, speak } from "@/lib/fx";
+import { burst, sounds } from "@/lib/fx";
 import { checkParentPin, logActivity, removeEntry, uid, useData, useStore } from "@/lib/store";
 import { fs, spring, tw } from "@/theme";
 
@@ -69,6 +69,11 @@ export default function KidScreen() {
   // One tap at a time: the server decides, so a second tap must wait for the first answer.
   const tapping = useRef(false);
 
+  const closeRemove = () => {
+    sounds.close();
+    setRemoving(null);
+  };
+
   const closeFeedback = useCallback(() => {
     setFeedback(null);
     setShowMilestone(true);
@@ -112,8 +117,7 @@ export default function KidScreen() {
           : c.reason === "same"
             ? `Wait ${formatWait(c.waitMs)} to tap ${activity.name} again.`
             : `Take a tiny break! Try again in ${formatWait(c.waitMs)}.`;
-      sounds.wrong();
-      void speak(text);
+      sounds.notYet();
       setFeedback({ id: uid(), kind: "blocked", emoji: c.reason === "daily" ? "🌙" : "⏳", title: c.reason === "daily" ? "All done!" : "Wait a little!", text });
       return;
     }
@@ -121,12 +125,10 @@ export default function KidScreen() {
       const m = goodMessage(kid.name);
       burst(at.x, at.y);
       sounds.good();
-      void speak(`${m.title} ${m.text} Plus ${activity.points} stars!`);
       setFeedback({ id: uid(), kind: "good", emoji: activity.emoji, points: activity.points, ...m });
     } else {
       const m = badMessage(kid.name);
       sounds.bad();
-      void speak(m.text);
       setFeedback({ id: uid(), kind: "bad", emoji: activity.emoji, points: activity.points, ...m });
     }
     if (res.unlocked.length) {
@@ -141,7 +143,10 @@ export default function KidScreen() {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ width: "100%", maxWidth: 1024, alignSelf: "center", paddingHorizontal: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 80 }}>
-        <Header avatar={kid.avatar} color={kid.color} name={kid.name} onHome={() => router.back()} />
+        <Header avatar={kid.avatar} color={kid.color} name={kid.name} onHome={() => {
+            sounds.close();
+            router.back();
+          }} />
 
         {/* Hero: jar + total + next goal */}
         <Hero>
@@ -303,11 +308,11 @@ export default function KidScreen() {
 
       {removing && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={[StyleSheet.absoluteFill, { zIndex: 40 }]}>
-          <Pressable onPress={() => setRemoving(null)} style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", padding: 16, backgroundColor: "rgba(59,7,100,0.6)" }]}>
+          <Pressable onPress={closeRemove} style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", padding: 16, backgroundColor: "rgba(59,7,100,0.6)" }]}>
             <Animated.View entering={ZoomIn.springify().damping(14)} exiting={ZoomOut}>
               <Pressable onPress={() => {}}>
                 <Card style={{ alignItems: "center", padding: 20 }}>
-                  <Pressable onPress={() => setRemoving(null)} hitSlop={12} style={{ position: "absolute", right: 16, top: 12 }}>
+                  <Pressable onPress={closeRemove} hitSlop={12} style={{ position: "absolute", right: 16, top: 12 }}>
                     <T style={{ fontSize: fs["3xl"], color: tw.purple400 }}>✕</T>
                   </Pressable>
                   <T style={{ fontSize: fs["4xl"], lineHeight: fs["4xl"] * 1.2 }}>🔐</T>
@@ -358,7 +363,7 @@ function Header({ avatar, color, name, onHome }: { avatar: string; color: string
           Hi {name}!
         </OutlineText>
       </View>
-      <Btn3D bg={tw.white} scale={0.9} onPress={onHome} style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+      <Btn3D bg={tw.white} scale={0.9} silent onPress={onHome} style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
         <T style={{ fontSize: fs["2xl"] }}>🏠</T>
       </Btn3D>
     </View>

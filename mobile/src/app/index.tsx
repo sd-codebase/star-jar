@@ -8,7 +8,7 @@ import type { Kid } from "@shared/types";
 import PinPad from "@/components/PinPad";
 import { Btn3D, BtnText, Card, OutlineText, T } from "@/components/ui";
 import { kf, useEnter, useLoop } from "@/lib/anim";
-import { burst, sounds, speak } from "@/lib/fx";
+import { burst, sounds } from "@/lib/fx";
 import { setActiveKid, useData } from "@/lib/store";
 import { fs, spring, tw } from "@/theme";
 
@@ -23,19 +23,26 @@ export default function Home() {
   useFocusEffect(useCallback(() => setActiveKid(null), []));
 
   const pick = (kid: Kid) => {
-    sounds.tap();
-    void speak(`Hi ${kid.name}! Enter your secret code.`);
+    sounds.open();
     setPicked(kid);
+  };
+
+  const closePin = () => {
+    sounds.close();
+    setPicked(null);
   };
 
   const submit = (pin: string) => {
     if (!picked || pin !== pinFor(picked.birthdate)) return false;
-    setActiveKid(picked.id);
-    sounds.good();
     burst();
+    return true;
+  };
+
+  const enter = () => {
+    if (!picked) return;
+    setActiveKid(picked.id);
     setPicked(null);
     router.push({ pathname: "/kid/[id]", params: { id: picked.id } });
-    return true;
   };
 
   const logo = useEnter(0.6);
@@ -94,11 +101,11 @@ export default function Home() {
 
       {picked && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={[StyleSheet.absoluteFill, { zIndex: 40 }]}>
-          <Pressable onPress={() => setPicked(null)} style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", padding: 16, backgroundColor: "rgba(59,7,100,0.6)" }]}>
+          <Pressable onPress={closePin} style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", padding: 16, backgroundColor: "rgba(59,7,100,0.6)" }]}>
             <Animated.View entering={ZoomIn.springify().damping(12)} exiting={ZoomOut}>
               <Pressable onPress={() => {}}>
                 <Card style={{ alignItems: "center", padding: 20 }}>
-                  <Pressable onPress={() => setPicked(null)} hitSlop={12} style={{ position: "absolute", right: 16, top: 12 }}>
+                  <Pressable onPress={closePin} hitSlop={12} style={{ position: "absolute", right: 16, top: 12 }}>
                     <T style={{ fontSize: fs["3xl"], color: tw.purple400 }}>✕</T>
                   </Pressable>
                   <View style={{ width: 96, height: 96, borderRadius: 48, alignItems: "center", justifyContent: "center", backgroundColor: picked.color }}>
@@ -108,7 +115,7 @@ export default function Home() {
                     Hi {picked.name}!
                   </T>
                   <View style={{ marginTop: 16 }}>
-                    <PinPad onSubmit={submit} hint="Your secret code: birthday day + month 🎂" />
+                    <PinPad onSubmit={submit} onUnlock={enter} hint="Your secret code: birthday day + month 🎂" />
                   </View>
                 </Card>
               </Pressable>

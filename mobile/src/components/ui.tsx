@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, TextInput, View, type PressableProps, type StyleProp, type TextInputProps, type TextProps, type TextStyle, type ViewStyle } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
-import * as Haptics from "expo-haptics";
 import { sounds } from "@/lib/fx";
 import { btn3dShadow, btn3dShadowPressed, cardShadow, font, fs, ink, tw, type Weight } from "@/theme";
 
@@ -101,7 +100,7 @@ export function Btn3D({
         p.onPressOut?.(e);
       }}
       onPress={(e) => {
-        if (!silent) void Haptics.selectionAsync();
+        if (!silent) sounds.tap();
         onPress?.(e);
       }}
       style={[s.btn, { backgroundColor: bg, boxShadow: down ? btn3dShadowPressed : btn3dShadow }, disabled && { opacity: 0.4 }, style, a]}

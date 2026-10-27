@@ -1,70 +1,98 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
-import * as Speech from "expo-speech";
 import { emitConfetti } from "@/components/Confetti";
 import { useStore } from "./store";
 
 void setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
 
+// Real kids' voices for good and oops taps, the milestone fanfare, and sci-fi interface sounds
+// for everything else (all from Pixabay).
 const SOURCES = {
-  tap: require("../../assets/sounds/tap.wav"),
-  good: require("../../assets/sounds/good.wav"),
-  bad: require("../../assets/sounds/bad.wav"),
-  wrong: require("../../assets/sounds/wrong.wav"),
+  yay: require("../../assets/sounds/yay.mp3"),
+  uhOh: require("../../assets/sounds/uh-oh.mp3"),
   fanfare: require("../../assets/sounds/fanfare.wav"),
+  click: require("../../assets/sounds/click.mp3"),
+  open: require("../../assets/sounds/screen-open.mp3"),
+  close: require("../../assets/sounds/close.mp3"),
+  key: require("../../assets/sounds/key.mp3"),
+  unlock: require("../../assets/sounds/unlock.mp3"),
+  denied: require("../../assets/sounds/denied.mp3"),
+  notYet: require("../../assets/sounds/not-yet.mp3"),
+  giftTap: require("../../assets/sounds/gift-tap.mp3"),
 };
 type SoundName = keyof typeof SOURCES;
 
-const players: Partial<Record<SoundName, AudioPlayer>> = {};
+// A few players per sound, used in turn: rapid presses (PIN digits, clicks) each get their own
+// instead of restarting one player mid-clip, which drops presses.
+const POOL = 3;
+const players: Partial<Record<SoundName, AudioPlayer[]>> = {};
+const next: Partial<Record<SoundName, number>> = {};
 
-function play(name: SoundName) {
+/** How long the PIN pad shows "unlocked" before moving on, so the unlock sound finishes with the screen fade. */
+export const UNLOCK_HOLD_MS = 450;
+
+function play(name: SoundName, { stopOthers = false } = {}) {
   if (!useStore.getState().data?.settings.sound) return;
   try {
-    const p = (players[name] ??= createAudioPlayer(SOURCES[name]));
-    p.seekTo(0);
-    p.play();
+    // Leaving a screen or popup: cut whatever it was still playing so nothing spills onto the next one.
+    if (stopOthers) for (const [n, pool] of Object.entries(players)) if (n !== name) pool?.forEach((other) => other.pause());
+    const pool = (players[name] ??= []);
+    const i = next[name] ?? 0;
+    next[name] = (i + 1) % POOL;
+    const p = (pool[i] ??= createAudioPlayer(SOURCES[name]));
+    void p
+      .seekTo(0)
+      .catch(() => {})
+      .then(() => p.play());
   } catch {
     // audio unavailable — stay silent
   }
 }
 
 export const sounds = {
-  tap: () => play("tap"),
+  tap: () => {
+    play("click");
+    void Haptics.selectionAsync();
+  },
+  /** A screen or popup appears (the PIN pad). */
+  open: () => play("open"),
+  /** A popup is dismissed or the child goes back home. */
+  close: () => {
+    play("close", { stopOthers: true });
+    void Haptics.selectionAsync();
+  },
+  /** One PIN digit. */
+  key: () => {
+    play("key");
+    void Haptics.selectionAsync();
+  },
+  unlock: () => {
+    play("unlock");
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  },
+  denied: () => {
+    play("denied");
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+  },
+  /** Tap refused by the limits: not the child's fault, so a gentle ping rather than "uh oh". */
+  notYet: () => {
+    play("notYet");
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  },
+  giftTap: () => {
+    play("giftTap");
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  },
   good: () => {
-    play("good");
+    play("yay");
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   },
   bad: () => {
-    play("bad");
+    play("uhOh");
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-  },
-  wrong: () => {
-    play("wrong");
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
   },
   fanfare: () => play("fanfare"),
 };
-
-let voice: string | undefined | null = null;
-async function pickVoice() {
-  if (voice !== null) return voice;
-  try {
-    const voices = await Speech.getAvailableVoicesAsync();
-    const en = voices.filter((v) => v.language.startsWith("en"));
-    voice = (en.find((v) => /female|samantha|google/i.test(`${v.name} ${v.identifier}`)) ?? en[0])?.identifier;
-  } catch {
-    voice = undefined;
-  }
-  return voice;
-}
-
-export async function speak(text: string) {
-  if (!useStore.getState().data?.settings.voice) return;
-  const clean = text.replace(/[\p{Extended_Pictographic}‍️]/gu, "").trim();
-  const v = await pickVoice();
-  void Speech.stop();
-  Speech.speak(clean, { rate: 0.95, pitch: 1.3, language: "en", voice: v });
-}
 
 const PARTY = ["#ff006e", "#ffbe0b", "#3a86ff", "#8338ec", "#06d6a0", "#fb5607"];
 

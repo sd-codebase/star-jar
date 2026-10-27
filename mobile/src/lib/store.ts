@@ -109,20 +109,22 @@ export function updateMyName(name: string) {
 /* ---------------- Parent PIN ---------------- */
 
 /** Creates the PIN if the family has none yet; otherwise checks it. On success the Parent Zone is unlocked. */
-export async function unlockParent(pin: string) {
+/** Checks the parent PIN (or sets it, the first time). Call `enterParentZone` afterwards to open the zone. */
+export async function verifyParentPin(pin: string) {
   try {
     const d = get().data!;
     if (!d.settings.hasParentPin) {
       await api("/family/pin", { method: "PUT", body: { pin } });
       set({ data: { ...d, settings: { ...d.settings, hasParentPin: true } } });
     } else if (!(await checkParentPin(pin))) return false;
-    setParentPin(pin);
     return true;
   } catch (e) {
     report(e);
     return false;
   }
 }
+
+export const enterParentZone = (pin: string) => setParentPin(pin);
 
 export const lockParent = () => setParentPin(null);
 

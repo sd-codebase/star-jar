@@ -1,4 +1,6 @@
-"""Render the webapp's WebAudio tones (webapp/src/lib/fx.ts) to WAV files the app can play.
+"""Render the webapp's WebAudio fanfare (webapp/src/lib/fx.ts) to a WAV file the app can play.
+
+The other app sounds (kids' voices and sci-fi interface clips in assets/sounds/*.mp3) come from Pixabay.
 
 Each note is an oscillator with the same envelope as `tone()`: exponential ramp from
 0.0001 to `vol` over 20 ms, then down to 0.0001 at `dur`. Run: python3 scripts/generate-sounds.py
@@ -51,10 +53,6 @@ def render(name: str, notes: list[tuple[float, float, float, str, float]]) -> No
         w.writeframes(b"".join(struct.pack("<h", int(x / peak * 32767)) for x in buf))
 
 
-render("tap", [(660, 0, 0.08, "sine", 0.12)])
-render("good", [(f, i * 0.08, 0.3, "triangle", 0.18) for i, f in enumerate([523, 659, 784, 1047, 1319])])
-render("bad", [(f, i * 0.18, 0.35, "sine", 0.15) for i, f in enumerate([392, 349, 311, 262])])
-render("wrong", [(f, i * 0.12, 0.15, "square", 0.06) for i, f in enumerate([220, 196])])
 starts = [0, 0.12, 0.24, 0.36, 0.6, 0.78, 0.9, 1.1]
 render("fanfare", [(f, starts[i], 0.8 if i == 7 else 0.2, "square", 0.1) for i, f in enumerate([523, 523, 523, 659, 784, 659, 784, 1047])])
 print(f"wrote {sorted(p.name for p in OUT.glob('*.wav'))}")

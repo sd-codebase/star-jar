@@ -13,11 +13,13 @@ import type { Activity, Entry, Kid, Milestone } from "@shared/types";
 import LegalLinks from "@/components/LegalLinks";
 import PinPad from "@/components/PinPad";
 import { Btn, Btn3D, BtnText, Card, Checkbox, Input, OutlineText, T } from "@/components/ui";
+import { sounds } from "@/lib/fx";
 import {
   acceptInvite,
   changeParentPin,
   deleteAccount,
   deleteKid,
+  enterParentZone,
   exportJson,
   flushFamily,
   getMe,
@@ -35,8 +37,8 @@ import {
   saveKid,
   setGiftGiven,
   uid,
-  unlockParent,
   updateMyName,
+  verifyParentPin,
   useData,
   useStore,
 } from "@/lib/store";
@@ -98,12 +100,17 @@ export default function ParentScreen() {
           <View style={{ marginTop: 16 }}>
             <PinPad
               hint={creating ? "Pick 4 digits the kids don't know" : "Enter parent PIN"}
-              onSubmit={async (pin) => {
-                return unlockParent(pin);
-              }}
+              onSubmit={verifyParentPin}
+              onUnlock={enterParentZone}
             />
           </View>
-          <T w={600} onPress={() => router.back()} style={{ marginTop: 16, color: tw.purple600, textDecorationLine: "underline" }}>
+          <T
+            w={600}
+            onPress={() => {
+              sounds.close();
+              router.back();
+            }}
+            style={{ marginTop: 16, color: tw.purple600, textDecorationLine: "underline" }}>
             ← Back
           </T>
         </Card>
@@ -749,10 +756,9 @@ function SettingsTab({ data }: { data: AppData }) {
   return (
     <View style={{ gap: 24 }}>
       <View>
-        <H2>Sound & Voice</H2>
+        <H2>Sound</H2>
         <View style={{ marginTop: 8, gap: 8 }}>
           <Checkbox size={24} checked={s.sound} onChange={(sound) => set({ sound })} label={<T style={{ fontSize: fs.lg }}>Sound effects</T>} />
-          <Checkbox size={24} checked={s.voice} onChange={(voice) => set({ voice })} label={<T style={{ fontSize: fs.lg, flexShrink: 1 }}>Talking voice (great for kids who can&apos;t read yet)</T>} />
         </View>
       </View>
 

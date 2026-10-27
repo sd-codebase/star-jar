@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { kf, useEnter, useLoop } from "@/lib/anim";
+import { sounds } from "@/lib/fx";
 import { fs, spring, tw } from "@/theme";
 import Rays from "./Rays";
 import { Btn3D, Card, OutlineText, T } from "./ui";
@@ -29,7 +30,10 @@ export default function FeedbackOverlay({ feedback, onClose }: { feedback: Feedb
       {feedback && (
         <Animated.View key={feedback.id} entering={FadeIn} exiting={FadeOut} style={[StyleSheet.absoluteFill, { zIndex: 40 }]}>
           <Pressable
-            onPress={onClose}
+            onPress={() => {
+              sounds.close();
+              onClose();
+            }}
             style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", overflow: "hidden", padding: 16, backgroundColor: feedback.kind === "bad" ? "rgba(15,23,42,0.7)" : "rgba(59,7,100,0.5)" }]}
           >
             {feedback.kind === "good" && <Good f={feedback} />}
