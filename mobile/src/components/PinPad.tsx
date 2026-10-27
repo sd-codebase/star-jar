@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
-import { sounds, UNLOCK_HOLD_MS } from "@/lib/fx";
+import { preloadSounds, sounds, UNLOCK_HOLD_MS } from "@/lib/fx";
 import { fs, tw } from "@/theme";
 import { Btn3D, T } from "./ui";
 
@@ -21,15 +21,23 @@ export default function PinPad({
   onUnlock?: (pin: string) => void;
   hint?: string;
 }) {
-  const [pin, setPin] = useState("");
+  const [pin, setPinState] = useState("");
+  // Taps can land before the re-render (e.g. while a sound loads); reading the ref instead of `pin`
+  // makes sure every digit counts.
+  const pinRef = useRef("");
+  const setPin = (next: string) => {
+    pinRef.current = next;
+    setPinState(next);
+  };
+  useEffect(() => preloadSounds("key", "unlock", "denied"), []);
   const shake = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }));
 
   const press = (d: string) => {
     // Full means it's being checked; extra taps would resubmit the same PIN.
-    if (pin.length >= length) return;
+    if (pinRef.current.length >= length) return;
     sounds.key();
-    const next = (pin + d).slice(0, length);
+    const next = (pinRef.current + d).slice(0, length);
     setPin(next);
     if (next.length === length) {
       setTimeout(async () => {
@@ -65,7 +73,7 @@ export default function PinPad({
                 scale={0.85}
                 bg={k === "⌫" ? "#adb5bd" : KEY_COLORS[Number(k)]}
                 style={{ width: 72, height: 72 }}
-                onPress={() => (k === "⌫" ? setPin((p) => (p.length >= length ? p : p.slice(0, -1))) : press(k))}
+                onPress={() => (k === "⌫" ? pinRef.current.length < length && setPin(pinRef.current.slice(0, -1)) : press(k))}
               >
                 <T w={700} style={{ fontSize: fs["3xl"], color: tw.white }}>
                   {k}

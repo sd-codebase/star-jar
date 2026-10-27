@@ -22,11 +22,22 @@ const SOURCES = {
 };
 type SoundName = keyof typeof SOURCES;
 
-// A few players per sound, used in turn: rapid presses (PIN digits, clicks) each get their own
-// instead of restarting one player mid-clip, which drops presses.
+// A few players per sound, used in turn, so rapid presses (PIN digits, clicks) overlap instead of
+// cutting each other off.
 const POOL = 3;
 const players: Partial<Record<SoundName, AudioPlayer[]>> = {};
 const next: Partial<Record<SoundName, number>> = {};
+
+const player = (name: SoundName, i: number) => ((players[name] ??= [])[i] ??= createAudioPlayer(SOURCES[name]));
+
+/** Loads sounds ahead of time; creating a player is slow enough to lag the tap that first needs it. */
+export function preloadSounds(...names: SoundName[]) {
+  try {
+    for (const name of names) for (let i = 0; i < POOL; i++) player(name, i);
+  } catch {
+    // audio unavailable — stay silent
+  }
+}
 
 /** How long the PIN pad shows "unlocked" before moving on, so the unlock sound finishes with the screen fade. */
 export const UNLOCK_HOLD_MS = 450;
@@ -36,10 +47,9 @@ function play(name: SoundName, { stopOthers = false } = {}) {
   try {
     // Leaving a screen or popup: cut whatever it was still playing so nothing spills onto the next one.
     if (stopOthers) for (const [n, pool] of Object.entries(players)) if (n !== name) pool?.forEach((other) => other.pause());
-    const pool = (players[name] ??= []);
     const i = next[name] ?? 0;
     next[name] = (i + 1) % POOL;
-    const p = (pool[i] ??= createAudioPlayer(SOURCES[name]));
+    const p = player(name, i);
     void p
       .seekTo(0)
       .catch(() => {})
