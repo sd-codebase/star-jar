@@ -312,11 +312,14 @@ function ActivitiesTab({ data }: { data: AppData }) {
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <H2>Activities</H2>
         <View style={{ flexDirection: "row", gap: 8 }}>
-          <Btn bg={tw.green500} label="+ Good" onPress={() => patchFamily({ activities: [...latest().activities, { id: uid(), name: "New activity", emoji: "🌟", points: 5, kind: "good" }] })} />
-          <Btn bg={tw.red500} label="+ Oops" onPress={() => patchFamily({ activities: [...latest().activities, { id: uid(), name: "New oops", emoji: "😕", points: -5, kind: "bad" }] })} />
+          <Btn bg={tw.green500} label="+ Good" onPress={() => patchFamily({ activities: [...latest().activities, { id: uid(), name: "New activity", emoji: "🌟", points: 5, kind: "good", custom: true }] })} />
+          <Btn bg={tw.red500} label="+ Oops" onPress={() => patchFamily({ activities: [...latest().activities, { id: uid(), name: "New oops", emoji: "😕", points: -5, kind: "bad", custom: true }] })} />
         </View>
       </View>
-      <Hint>Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts).</Hint>
+      <Hint>
+        Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts). ✏️ Custom = added by
+        you, and only your family sees it.
+      </Hint>
       <View style={{ marginTop: 16, gap: 8 }}>
         {data.activities.map((a) => (
           <View key={a.id} style={{ gap: 8, borderRadius: 16, padding: 8, backgroundColor: a.kind === "good" ? tw.green50 : tw.red50 }}>
@@ -329,6 +332,11 @@ function ActivitiesTab({ data }: { data: AppData }) {
               <T w={700} style={{ fontSize: fs.sm }}>
                 {a.kind === "good" ? "😊 good" : "😟 oops"}
               </T>
+              {a.custom && (
+                <T w={700} style={{ fontSize: fs.xs, color: tw.purple700, backgroundColor: tw.purple100, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: "hidden" }}>
+                  ✏️ Custom
+                </T>
+              )}
               <View style={{ flex: 1 }}>
                 <Checkbox checked={!!a.parentOnly} onChange={(v) => update(a.id, { parentOnly: v || undefined })} label={<T w={600} style={{ fontSize: fs.sm }}>🔒 Parents only</T>} />
               </View>

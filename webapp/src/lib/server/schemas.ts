@@ -19,6 +19,7 @@ export const activity = z.object({
   points: z.number().int().min(-100).max(100),
   kind: z.enum(["good", "bad"]),
   parentOnly: z.boolean().optional(),
+  custom: z.boolean().optional(),
 });
 
 export const milestone = z.object({

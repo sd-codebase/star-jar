@@ -4,7 +4,7 @@ export const AVATARS = ["🦁", "🐯", "🐼", "🐨", "🦊", "🐸", "🐵", 
 
 export const COLORS = ["#ff4d6d", "#ff8c00", "#ffc300", "#2ec4b6", "#3a86ff", "#8338ec", "#ff006e", "#06d6a0"];
 
-export const DEFAULTS_REV = 3;
+export const DEFAULTS_REV = 4;
 
 export const DEFAULT_ACTIVITIES: Activity[] = [
   { id: "early-rise", name: "Woke Up Early", emoji: "🌅", points: 5, kind: "good" },
@@ -64,9 +64,21 @@ const REMOVED_IDS = new Set(["homework"]);
 const INTRODUCED_IN: Record<string, number> = { breakfast: 3, lunch: 3, dinner: 3 };
 const introducedIn = (id: string) => (REV1_NAMES[id] ? 1 : (INTRODUCED_IN[id] ?? 2));
 
+const DEFAULT_IDS = new Set(DEFAULT_ACTIVITIES.map((a) => a.id));
+
+/**
+ * Flags the activities a parent added (anything that isn't a built-in) as `custom`. The server
+ * derives this on every save, so a client can't mark a built-in as custom or the other way round.
+ */
+export function markCustom(activities: Activity[]): Activity[] {
+  return activities.map(({ custom, ...a }) => (void custom, DEFAULT_IDS.has(a.id) ? a : { ...a, custom: true }));
+}
+
 /** Bring saved activities up to the latest built-in list without touching parent customisations. */
 export function upgradeActivities(activities: Activity[], rev: number): Activity[] {
   if (rev >= DEFAULTS_REV) return activities;
+  // Rev 4 adds no built-ins; it only marks the activities parents added as custom.
+  if (rev === 3) return markCustom(activities);
   const byId = new Map(DEFAULT_ACTIVITIES.map((a) => [a.id, a]));
   let result = activities;
   if (rev < 2) {
@@ -88,7 +100,7 @@ export function upgradeActivities(activities: Activity[], rev: number): Activity
     });
     result.splice(at + 1, 0, { ...def });
   });
-  return result;
+  return markCustom(result);
 }
 
 export const DEFAULT_MILESTONES: Milestone[] = [

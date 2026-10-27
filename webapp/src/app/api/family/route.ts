@@ -1,3 +1,4 @@
+import { markCustom } from "@/lib/defaults";
 import { cols } from "@/lib/server/db";
 import { familyOf, requireParent, snapshot } from "@/lib/server/family";
 import { authedRoute, body } from "@/lib/server/http";
@@ -12,7 +13,7 @@ export const PATCH = authedRoute(async (req, { user }) => {
   const p = await body(req, familyPatch);
   const $set: Record<string, unknown> = {};
   if (p.name) $set.name = p.name;
-  if (p.activities) $set.activities = p.activities;
+  if (p.activities) $set.activities = markCustom(p.activities);
   if (p.milestones) $set.milestones = p.milestones;
   for (const [k, v] of Object.entries(p.settings ?? {})) $set[`settings.${k}`] = v;
   if (Object.keys($set).length) {

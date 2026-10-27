@@ -241,15 +241,15 @@ function ActivitiesTab({ data }: { data: AppData }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-bold">Activities</h2>
         <div className="flex gap-2">
-          <button className={`${btn} bg-green-500`} onClick={() => patchFamily({ activities: [...activities(), { id: uid(), name: "New activity", emoji: "🌟", points: 5, kind: "good" }] })}>
+          <button className={`${btn} bg-green-500`} onClick={() => patchFamily({ activities: [...activities(), { id: uid(), name: "New activity", emoji: "🌟", points: 5, kind: "good", custom: true }] })}>
             + Good
           </button>
-          <button className={`${btn} bg-red-500`} onClick={() => patchFamily({ activities: [...activities(), { id: uid(), name: "New oops", emoji: "😕", points: -5, kind: "bad" }] })}>
+          <button className={`${btn} bg-red-500`} onClick={() => patchFamily({ activities: [...activities(), { id: uid(), name: "New oops", emoji: "😕", points: -5, kind: "bad", custom: true }] })}>
             + Oops
           </button>
         </div>
       </div>
-      <p className="mt-1 text-sm text-purple-600">Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts).</p>
+      <p className="mt-1 text-sm text-purple-600">Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts). ✏️ Custom = added by you, and only your family sees it.</p>
       <ul className="mt-4 space-y-2">
         {data.activities.map((a) => (
           <li key={a.id} className={`flex flex-col gap-2 rounded-2xl p-2 sm:flex-row sm:items-center ${a.kind === "good" ? "bg-green-50" : "bg-red-50"}`}>
@@ -268,6 +268,7 @@ function ActivitiesTab({ data }: { data: AppData }) {
                 }}
               />
               <span className="whitespace-nowrap text-sm font-bold sm:w-16">{a.kind === "good" ? "😊 good" : "😟 oops"}</span>
+              {a.custom && <span className="whitespace-nowrap rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">✏️ Custom</span>}
               <label className="flex flex-1 items-center gap-1 whitespace-nowrap text-sm font-semibold sm:flex-none" title="Hide from kids; only parents can add it">
                 <input type="checkbox" className="h-5 w-5" checked={!!a.parentOnly} onChange={(e) => update(a.id, { parentOnly: e.target.checked || undefined })} />
                 🔒 Parents only

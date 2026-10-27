@@ -18,6 +18,7 @@ export interface Activity {
   points: number; // positive for good, negative for bad
   kind: Kind;
   parentOnly?: boolean; // hidden from kids (e.g. Bonus) — only parents can award it
+  custom?: boolean; // added by a parent rather than built in; exists only in that family's list (set by the server)
 }
 
 export interface Milestone {
