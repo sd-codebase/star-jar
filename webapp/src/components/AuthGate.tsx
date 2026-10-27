@@ -7,7 +7,7 @@ import SkyBackground from "@/components/SkyBackground";
 import { dismissError, load, useStore } from "@/lib/store";
 
 /** Pages anyone can read without logging in (the Play Store links to them). */
-const PUBLIC = ["/login", "/privacy", "/terms", "/delete-account"];
+const PUBLIC = ["/login", "/privacy", "/terms", "/delete-account", "/support"];
 
 /** Loads the family once, sends logged-out visitors to /login, and shows request errors as a toast. */
 export default function AuthGate({ children }: { children: React.ReactNode }) {

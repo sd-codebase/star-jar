@@ -22,6 +22,7 @@ export default function LegalPage({ title, emoji, children }: { title: string; e
           <Link href="/privacy">Privacy policy</Link>
           <Link href="/terms">Terms of use</Link>
           <Link href="/delete-account">Delete your account</Link>
+          <Link href="/support">Help & support</Link>
           <a href={`mailto:${CONTACT_EMAIL}`}>Contact</a>
           <Link href="/">Open {APP_NAME}</Link>
         </nav>
