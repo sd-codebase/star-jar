@@ -5,6 +5,7 @@ import { PARENT_PIN_HEADER, type ApiError } from "@shared/api-types";
 export const API_URL: string = (Constants.expoConfig?.extra?.apiUrl as string) ?? "https://star-jar-lovat.vercel.app";
 
 const TOKEN_KEY = "starjar.session";
+const REQUEST_TIMEOUT_MS = 20_000;
 let token: string | null | undefined;
 
 export async function getToken() {
@@ -39,15 +40,21 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
   if (opts.body !== undefined) headers["Content-Type"] = "application/json";
   if (opts.pin) headers[PARENT_PIN_HEADER] = opts.pin;
 
+  // A network that's connected but not passing traffic never errors on its own, so give up after a while.
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api${path}`, {
       method: opts.method ?? (opts.body === undefined ? "GET" : "POST"),
       headers,
       body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+      signal: abort.signal,
     });
   } catch {
     throw new RequestError(0, "offline", "Can't reach Star Jar. Check your internet connection.");
+  } finally {
+    clearTimeout(timer);
   }
 
   const json = (await res.json().catch(() => null)) as (T & Partial<ApiError>) | null;

@@ -25,7 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: "com.jsleet.starjar",
     // Bump for every Play Store upload.
-    versionCode: 1,
+    versionCode: 2,
     adaptiveIcon: {
       backgroundColor: "#7b2ff7",
       foregroundImage: "./assets/android-icon-foreground.png",
