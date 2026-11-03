@@ -15,8 +15,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   backgroundColor: "#7b2ff7",
   ios: {
     bundleIdentifier: "com.jsleet.starjar",
+    appleTeamId: "DN3DWWT5CQ",
     // Bump for every App Store upload.
-    buildNumber: "2",
+    buildNumber: "3",
     // iPhone only: no iPad screenshots or iPad layout review. iPads run it in iPhone mode.
     supportsTablet: false,
     config: { usesNonExemptEncryption: false },
