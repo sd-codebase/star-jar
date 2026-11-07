@@ -235,22 +235,26 @@ function KidForm({ kid, onSave, onCancel }: { kid: Kid; onSave: (k: Kid) => Prom
 function ActivitiesTab({ data }: { data: AppData }) {
   const activities = () => getData()!.activities;
   const update = (id: string, patch: Partial<Activity>) => patchFamily({ activities: activities().map((a) => (a.id === id ? { ...a, ...patch } : a)) });
+  const remove = (a: Activity) => {
+    if (confirm(`Delete "${a.name}"? Past history keeps it.${a.custom ? "" : " Built-in activities can't be added back."}`))
+      void patchFamily({ activities: activities().filter((x) => x.id !== a.id) });
+  };
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-bold">Activities</h2>
         <div className="flex gap-2">
-          <button className={`${btn} bg-green-500`} onClick={() => patchFamily({ activities: [...activities(), { id: uid(), name: "New activity", emoji: "🌟", points: 5, kind: "good", custom: true }] })}>
+          <button className={`${btn} bg-green-500`} onClick={() => patchFamily({ activities: [{ id: uid(), name: "New activity", emoji: "🌟", points: 5, kind: "good", custom: true }, ...activities()] })}>
             + Good
           </button>
-          <button className={`${btn} bg-red-500`} onClick={() => patchFamily({ activities: [...activities(), { id: uid(), name: "New oops", emoji: "😕", points: -5, kind: "bad", custom: true }] })}>
+          <button className={`${btn} bg-red-500`} onClick={() => patchFamily({ activities: [{ id: uid(), name: "New oops", emoji: "😕", points: -5, kind: "bad", custom: true }, ...activities()] })}>
             + Oops
           </button>
         </div>
       </div>
-      <p className="mt-1 text-sm text-purple-600">Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts). Built-in activities (green and red) are fixed, but you can hide them from kids.
-        ✏️ Custom ones (purple) are yours: only your family sees them, and you can edit or delete them.</p>
+      <p className="mt-1 text-sm text-purple-600">Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts). Built-in activities (green and red) can&apos;t be edited, but you can hide or delete them.
+        ✏️ Custom ones (purple) are yours to edit or delete. Deleting only affects your family.</p>
       <ul className="mt-4 space-y-2">
         {data.activities.map((a) =>
           a.custom ? (
@@ -275,13 +279,13 @@ function ActivitiesTab({ data }: { data: AppData }) {
                   <input type="checkbox" className="h-5 w-5" checked={!!a.parentOnly} onChange={(e) => update(a.id, { parentOnly: e.target.checked || undefined })} />
                   🔒 Parents only
                 </label>
-                <button className={`${btn} bg-red-400 px-3`} onClick={() => patchFamily({ activities: activities().filter((x) => x.id !== a.id) })}>
+                <button className={`${btn} bg-red-400 px-3`} onClick={() => remove(a)}>
                   ✕
                 </button>
               </div>
             </li>
           ) : (
-            <li key={a.id} className={`flex items-center gap-3 rounded-2xl p-2 ${a.kind === "good" ? "bg-green-100" : "bg-red-100"}`} title="Built-in activity: it can only be hidden from kids">
+            <li key={a.id} className={`flex items-center gap-3 rounded-2xl p-2 ${a.kind === "good" ? "bg-green-100" : "bg-red-100"}`} title="Built-in activity: it can be hidden from kids or deleted">
               <span className="w-16 shrink-0 text-center text-2xl">{a.emoji}</span>
               <span className="min-w-0 flex-1 font-semibold">{a.name}</span>
               <span className="w-12 text-right font-bold">{a.points > 0 ? `+${a.points}` : a.points}</span>
@@ -290,6 +294,9 @@ function ActivitiesTab({ data }: { data: AppData }) {
                 <input type="checkbox" className="h-5 w-5" checked={!!a.parentOnly} onChange={(e) => update(a.id, { parentOnly: e.target.checked || undefined })} />
                 🔒 Parents only
               </label>
+              <button className={`${btn} bg-red-400 px-3`} onClick={() => remove(a)}>
+                ✕
+              </button>
             </li>
           ),
         )}

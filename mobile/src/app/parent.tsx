@@ -306,20 +306,24 @@ function KidForm({ kid, onSave, onCancel }: { kid: Kid; onSave: (k: Kid) => Prom
 
 function ActivitiesTab({ data }: { data: AppData }) {
   const update = (id: string, patch: Partial<Activity>) => patchFamily({ activities: latest().activities.map((a) => (a.id === id ? { ...a, ...patch } : a)) });
+  const remove = async (a: Activity) => {
+    if (await confirm(`Delete "${a.name}"?`, a.custom ? "Past history keeps it." : "Past history keeps it. Built-in activities can't be added back."))
+      void patchFamily({ activities: latest().activities.filter((x) => x.id !== a.id) });
+  };
 
   return (
     <View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <H2>Activities</H2>
         <View style={{ flexDirection: "row", gap: 8 }}>
-          <Btn bg={tw.green500} label="+ Good" onPress={() => patchFamily({ activities: [...latest().activities, { id: uid(), name: "New activity", emoji: "🌟", points: 5, kind: "good", custom: true }] })} />
-          <Btn bg={tw.red500} label="+ Oops" onPress={() => patchFamily({ activities: [...latest().activities, { id: uid(), name: "New oops", emoji: "😕", points: -5, kind: "bad", custom: true }] })} />
+          <Btn bg={tw.green500} label="+ Good" onPress={() => patchFamily({ activities: [{ id: uid(), name: "New activity", emoji: "🌟", points: 5, kind: "good", custom: true }, ...latest().activities] })} />
+          <Btn bg={tw.red500} label="+ Oops" onPress={() => patchFamily({ activities: [{ id: uid(), name: "New oops", emoji: "😕", points: -5, kind: "bad", custom: true }, ...latest().activities] })} />
         </View>
       </View>
       <Hint>
         Changes save automatically. Past history keeps its old name & points. 🔒 Parents only = hidden from kids (give it from Log & Gifts). Built-in
-        activities (green and red) are fixed, but you can hide them from kids. ✏️ Custom ones (purple) are yours: only your family sees them, and you can edit
-        or delete them.
+        activities (green and red) can&apos;t be edited, but you can hide or delete them. ✏️ Custom ones (purple) are yours to edit or delete. Deleting only
+        affects your family.
       </Hint>
       <View style={{ marginTop: 16, gap: 8 }}>
         {data.activities.map((a) =>
@@ -334,7 +338,7 @@ function ActivitiesTab({ data }: { data: AppData }) {
                 <T w={700} style={{ flex: 1, fontSize: fs.sm }}>
                   {a.kind === "good" ? "😊 good" : "😟 oops"}
                 </T>
-                <Btn bg={tw.red400} label="✕" style={{ paddingHorizontal: 12 }} onPress={() => patchFamily({ activities: latest().activities.filter((x) => x.id !== a.id) })} />
+                <Btn bg={tw.red400} label="✕" style={{ paddingHorizontal: 12 }} onPress={() => void remove(a)} />
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <T w={700} style={{ fontSize: fs.xs, color: tw.white, backgroundColor: tw.purple600, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: "hidden" }}>
@@ -354,6 +358,7 @@ function ActivitiesTab({ data }: { data: AppData }) {
                 <T w={700} style={{ fontSize: fs.sm }}>
                   {a.kind === "good" ? "😊 good" : "😟 oops"}
                 </T>
+                <Btn bg={tw.red400} label="✕" style={{ paddingHorizontal: 12 }} onPress={() => void remove(a)} />
               </View>
               <View style={{ marginLeft: 50 }}>
                 <Checkbox checked={!!a.parentOnly} onChange={(v) => update(a.id, { parentOnly: v || undefined })} label={<T w={600} style={{ fontSize: fs.sm }}>🔒 Parents only</T>} />

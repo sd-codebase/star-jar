@@ -69,7 +69,7 @@ const DEFAULT_BY_ID = new Map(DEFAULT_ACTIVITIES.map((a) => [a.id, a]));
 export const isBuiltIn = (activityId: string) => DEFAULT_BY_ID.has(activityId);
 
 /**
- * Built-ins always match their shipped definition: parents can only hide them from kids (`parentOnly`).
+ * Built-ins always match their shipped definition: parents can only hide them from kids (`parentOnly`) or delete them.
  * Everything else is the parent's own and flagged `custom`. The server applies this on every save and
  * import, so no client can edit a built-in or mislabel an activity.
  */
