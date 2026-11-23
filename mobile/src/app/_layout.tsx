@@ -45,6 +45,7 @@ export default function RootLayout() {
                 <Stack.Protected guard={inApp}>
                   <Stack.Screen name="index" />
                   <Stack.Screen name="kid/[id]" />
+                  <Stack.Screen name="videos" />
                   <Stack.Screen name="parent" />
                 </Stack.Protected>
                 <Stack.Protected guard={!inApp}>

@@ -8,7 +8,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: "Star Jar",
   slug: "star-jar",
   scheme: "starjar",
-  version: "1.0.1",
+  version: "1.0.2",
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",
@@ -17,7 +17,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundleIdentifier: "com.jsleet.starjar",
     appleTeamId: "DN3DWWT5CQ",
     // Bump for every App Store upload.
-    buildNumber: "4",
+    buildNumber: "5",
     // iPhone only: no iPad screenshots or iPad layout review. iPads run it in iPhone mode.
     supportsTablet: false,
     config: { usesNonExemptEncryption: false },
@@ -25,7 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: "com.jsleet.starjar",
     // Bump for every Play Store upload.
-    versionCode: 3,
+    versionCode: 5,
     adaptiveIcon: {
       backgroundColor: "#7b2ff7",
       foregroundImage: "./assets/android-icon-foreground.png",
@@ -59,6 +59,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ["expo-build-properties", { android: { targetSdkVersion: 36 } }],
     // Release builds are signed locally with the upload key (no EAS).
     "./plugins/withReleaseSigning",
+    "./plugins/withPortraitOptional",
   ],
   experiments: { typedRoutes: true },
   extra: { apiUrl: API_URL },

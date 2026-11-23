@@ -8,6 +8,9 @@ import { uid } from "../uid";
 import { cols, type EntryDoc, type FamilyDoc, type KidDoc, type UserDoc } from "./db";
 import { HttpError } from "./http";
 
+/** Videos feature flag for this family: off unless an engineer set `features.videos` to true in the database. */
+export const videosOn = (fam: FamilyDoc) => fam.features?.videos === true;
+
 export const person = (u: UserDoc): Person => ({ id: u._id, name: u.name, phone: u.phone });
 
 export async function createFamily(user: UserDoc) {
@@ -69,6 +72,8 @@ export async function snapshot(user: UserDoc): Promise<FamilySnapshot> {
     kids: kids.map(stripKid),
     activities: fam.activities,
     milestones: fam.milestones,
+    features: { videos: videosOn(fam) },
+    videos: videosOn(fam) ? (fam.videos ?? []) : [],
     entries: entries.map(stripEntry),
     settings: { ...settings, hasParentPin: !!parentPin },
   };

@@ -21,6 +21,17 @@ export interface Activity {
   custom?: boolean; // added by a parent; only custom ones can be edited or deleted (built-ins can only be hidden), and only that family has them (set by the server)
 }
 
+/** Per-family feature flags. Set by an engineer directly in the database (`families.features`); no UI. All default to off. */
+export interface Features {
+  videos?: boolean;
+}
+
+export interface Video {
+  id: string;
+  youtubeId: string; // 11-character YouTube video id
+  title: string;
+}
+
 export interface Milestone {
   id: string;
   points: number;

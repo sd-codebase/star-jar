@@ -1,6 +1,6 @@
 import "server-only";
 import { MongoClient, type Db } from "mongodb";
-import type { Activity, Entry, Kid, Milestone, Settings } from "../types";
+import type { Activity, Entry, Features, Kid, Milestone, Settings, Video } from "../types";
 import { env } from "./env";
 
 export interface UserDoc {
@@ -36,6 +36,8 @@ export interface FamilyDoc {
   name: string;
   activities: Activity[];
   milestones: Milestone[];
+  videos?: Video[];
+  features?: Features;
   settings: Settings;
   defaultsRev: number;
   createdBy: string;

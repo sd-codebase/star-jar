@@ -1,6 +1,6 @@
 import { normalizeActivities } from "@/lib/defaults";
 import { cols } from "@/lib/server/db";
-import { familyOf, requireParent, snapshot } from "@/lib/server/family";
+import { familyOf, requireParent, snapshot, videosOn } from "@/lib/server/family";
 import { authedRoute, body } from "@/lib/server/http";
 import { familyPatch } from "@/lib/server/schemas";
 
@@ -16,6 +16,8 @@ export const PATCH = authedRoute(async (req, { user }) => {
   // Parents may delete any activity, built-in or custom; it only leaves this family's list.
   if (p.activities) $set.activities = normalizeActivities(p.activities);
   if (p.milestones) $set.milestones = p.milestones;
+  // Feature off: ignore silently (no error), so nothing about videos is ever revealed or stored.
+  if (p.videos && videosOn(fam)) $set.videos = p.videos;
   for (const [k, v] of Object.entries(p.settings ?? {})) $set[`settings.${k}`] = v;
   if (Object.keys($set).length) {
     const { families } = await cols();

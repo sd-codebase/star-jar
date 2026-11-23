@@ -1,12 +1,12 @@
 import { create } from "zustand";
 import type { FamilySnapshot, LogResult, MeResponse, VerifyOtpResponse } from "@shared/api-types";
-import type { Activity, AppData, Entry, Kid, Milestone, Settings } from "@shared/types";
+import type { Activity, AppData, Entry, Kid, Milestone, Settings, Video } from "@shared/types";
 import { api, getToken, RequestError, setToken, setUnauthenticatedHandler } from "./api";
 
 export { uid } from "@shared/uid";
 
 export type Status = "loading" | "authed" | "anon" | "error";
-type FamilyPatch = { name?: string; settings?: Partial<Omit<Settings, "parentPin">>; activities?: Activity[]; milestones?: Milestone[] };
+type FamilyPatch = { name?: string; settings?: Partial<Omit<Settings, "parentPin">>; activities?: Activity[]; milestones?: Milestone[]; videos?: Video[] };
 
 interface State {
   status: Status;
@@ -155,6 +155,7 @@ function withPending(d: FamilySnapshot): FamilySnapshot {
     family: pending.name ? { ...d.family, name: pending.name } : d.family,
     activities: pending.activities ?? d.activities,
     milestones: pending.milestones ?? d.milestones,
+    videos: pending.videos ?? d.videos,
     settings: { ...d.settings, ...pending.settings },
   };
 }

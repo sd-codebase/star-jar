@@ -4,12 +4,13 @@ import { File, Paths } from "expo-file-system";
 import { useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { FamilySnapshot, MeResponse } from "@shared/api-types";
 import { AVATARS, COLORS } from "@shared/defaults";
 import { isToday, pinFor, totalStars } from "@shared/rules";
-import type { Activity, Entry, Kid, Milestone } from "@shared/types";
+import type { Activity, Entry, Kid, Milestone, Video } from "@shared/types";
+import { youtubeId, youtubeThumb } from "@shared/youtube";
 import LegalLinks from "@/components/LegalLinks";
 import PinPad from "@/components/PinPad";
 import { Btn, Btn3D, BtnText, Card, Checkbox, Input, OutlineText, T } from "@/components/ui";
@@ -46,8 +47,8 @@ import { fs, tw } from "@/theme";
 
 type AppData = FamilySnapshot;
 
-const TABS = ["Kids", "Activities", "Milestones", "Log & Gifts", "Family", "Settings"] as const;
-type Tab = (typeof TABS)[number];
+const ALL_TABS = ["Kids", "Activities", "Milestones", "Videos", "Log & Gifts", "Family", "Settings"] as const;
+type Tab = (typeof ALL_TABS)[number];
 
 /** Native stand-in for `confirm()`. */
 const confirm = (title: string, message?: string, destructive = true) =>
@@ -79,7 +80,10 @@ export default function ParentScreen() {
   const insets = useSafeAreaInsets();
   // Leaving the Parent Zone locks it, so coming back always asks for the PIN again.
   const unlocked = useStore((s) => s.parentUnlocked);
-  const [tab, setTab] = useState<Tab>("Kids");
+  const [selected, setTab] = useState<Tab>("Kids");
+  // Videos is a per-family feature flag: when off, its tab simply doesn't exist.
+  const TABS = ALL_TABS.filter((t) => t !== "Videos" || data.features?.videos === true);
+  const tab = TABS.includes(selected) ? selected : "Kids";
   useEffect(
     () => () => {
       void flushFamily();
@@ -150,6 +154,7 @@ export default function ParentScreen() {
           {tab === "Kids" && <KidsTab data={data} />}
           {tab === "Activities" && <ActivitiesTab data={data} />}
           {tab === "Milestones" && <MilestonesTab data={data} />}
+          {tab === "Videos" && <VideosTab data={data} />}
           {tab === "Log & Gifts" && <LogTab data={data} />}
           {tab === "Family" && <FamilyTab data={data} />}
           {tab === "Settings" && <SettingsTab data={data} />}
@@ -366,6 +371,71 @@ function ActivitiesTab({ data }: { data: AppData }) {
             </View>
           ),
         )}
+      </View>
+    </View>
+  );
+}
+
+/* ---------------- Videos ---------------- */
+
+function VideosTab({ data }: { data: AppData }) {
+  const [link, setLink] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const add = async () => {
+    const yt = youtubeId(link);
+    if (!yt) return setError("That doesn't look like a YouTube link.");
+    if (latest().videos.some((v) => v.youtubeId === yt)) return setError("That video is already added.");
+    setBusy(true);
+    setError("");
+    try {
+      // YouTube's oEmbed answers with the title, and refuses videos that can't be played in other apps.
+      const res = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${yt}`)}`);
+      if (res.status === 401 || res.status === 403) return setError("The owner doesn't allow this video to play in other apps. Pick another one.");
+      if (res.status === 404) return setError("Video not found (it may be private or deleted).");
+      const title = res.ok ? String(((await res.json()) as { title?: string }).title ?? "").slice(0, 100) : "";
+      patchFamily({ videos: [{ id: uid(), youtubeId: yt, title: title || "New video" }, ...latest().videos] });
+      setLink("");
+    } catch {
+      setError("Couldn't reach YouTube. Check your internet and try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const update = (id: string, patch: Partial<Video>) => patchFamily({ videos: latest().videos.map((v) => (v.id === id ? { ...v, ...patch } : v)) });
+  const remove = async (v: Video) => {
+    if (await confirm(`Remove "${v.title}"?`)) patchFamily({ videos: latest().videos.filter((x) => x.id !== v.id) });
+  };
+
+  return (
+    <View>
+      <H2>Videos</H2>
+      <Hint>
+        Paste a YouTube link (youtube.com, youtu.be or Shorts). Kids only see these videos, in the Videos page on their screen. Ads: videos play inside
+        the app, and YouTube may show ads on monetised videos — your YouTube Premium doesn&apos;t apply here. Videos &quot;made for kids&quot; never get
+        personalised ads.
+      </Hint>
+      <View style={{ marginTop: 12, flexDirection: "row", gap: 8 }}>
+        <Input style={{ flex: 1 }} value={link} placeholder="https://youtu.be/…" autoCapitalize="none" autoCorrect={false} keyboardType="url" onChangeText={(t) => { setLink(t); setError(""); }} onSubmitEditing={() => void add()} />
+        <Btn bg={tw.green500} label={busy ? "…" : "+ Add"} onPress={() => void add()} />
+      </View>
+      {busy && <ActivityIndicator style={{ marginTop: 8 }} />}
+      {!!error && (
+        <T w={600} style={{ marginTop: 8, color: tw.red600 }}>
+          {error}
+        </T>
+      )}
+      <View style={{ marginTop: 16, gap: 8 }}>
+        {data.videos.length === 0 && <T style={{ color: tw.purple600 }}>No videos yet.</T>}
+        {data.videos.map((v) => (
+          <View key={v.id} style={{ flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 16, padding: 8, backgroundColor: tw.purple100, borderWidth: 2, borderColor: tw.purple300 }}>
+            <Image source={{ uri: youtubeThumb(v.youtubeId) }} style={{ width: 96, height: 54, borderRadius: 8, backgroundColor: tw.purple300 }} />
+            <Input style={{ flex: 1 }} value={v.title} maxLength={100} onChangeText={(title) => update(v.id, { title })} />
+            <Btn bg={tw.red400} label="✕" style={{ paddingHorizontal: 12 }} onPress={() => void remove(v)} />
+          </View>
+        ))}
       </View>
     </View>
   );

@@ -12,7 +12,7 @@ import JourneyMap from "@/components/JourneyMap";
 import MilestoneOverlay from "@/components/MilestoneOverlay";
 import PinPad from "@/components/PinPad";
 import StarJar, { CountUp } from "@/components/StarJar";
-import { Btn3D, Card, OutlineText, T } from "@/components/ui";
+import { Btn3D, BtnText, Card, OutlineText, T } from "@/components/ui";
 import { kf, useLoop } from "@/lib/anim";
 import { burst, sounds } from "@/lib/fx";
 import { checkParentPin, logActivity, removeEntry, uid, useData, useStore } from "@/lib/store";
@@ -181,6 +181,16 @@ export default function KidScreen() {
             )}
           </View>
         </Hero>
+
+        {data.features?.videos === true && data.videos.length > 0 && (
+          <View style={{ marginTop: 24 }}>
+            <Btn3D bg={tw.pink500} onPress={() => router.push("/videos")} style={{ paddingVertical: 14 }}>
+              <BtnText color={tw.white} style={{ fontSize: fs.xl }}>
+                📺 Watch Videos
+              </BtnText>
+            </Btn3D>
+          </View>
+        )}
 
         <Section title="Earn Stars ⭐">
           <Grid cols={goodCols} gap={16}>

@@ -1,6 +1,11 @@
 /** Wire types shared by the Next.js API, the webapp and the Expo app. */
 import type { Check } from "./rules";
-import type { Activity, Entry, Kid, Milestone, Settings } from "./types";
+import type { Activity, Entry, Kid, Milestone, Settings, Video } from "./types";
+
+/** Which optional features are on for this family. */
+export interface FamilyFeatures {
+  videos: boolean;
+}
 
 export type PublicSettings = Omit<Settings, "parentPin"> & { hasParentPin: boolean };
 
@@ -24,6 +29,9 @@ export interface FamilySnapshot {
   kids: Kid[];
   activities: Activity[];
   milestones: Milestone[];
+  features: FamilyFeatures;
+  /** Always empty unless `features.videos` is on. */
+  videos: Video[];
   entries: Entry[];
   settings: PublicSettings;
 }

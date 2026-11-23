@@ -30,6 +30,12 @@ export const milestone = z.object({
   gift: z.string().trim().max(100),
 });
 
+export const video = z.object({
+  id,
+  youtubeId: z.string().regex(/^[\w-]{11}$/),
+  title: label(100),
+});
+
 const editableSettings = z.object({
   sound: z.boolean(),
   voice: z.boolean(),
@@ -43,6 +49,7 @@ export const familyPatch = z.object({
   settings: editableSettings.partial().optional(),
   activities: z.array(activity).max(200).optional(),
   milestones: z.array(milestone).max(100).optional(),
+  videos: z.array(video).max(100).optional(),
 });
 
 export const pinBody = z.object({ pin });

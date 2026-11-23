@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { preloadSounds, sounds, UNLOCK_HOLD_MS } from "@/lib/fx";
 import { fs, tw } from "@/theme";
 import { Btn3D, T } from "./ui";
@@ -89,7 +89,7 @@ export default function PinPad({
 function Dot({ filled }: { filled: boolean }) {
   const s = useSharedValue(1);
   useEffect(() => {
-    if (filled) s.value = withSequence(withSpring(1.4, { duration: 150 }), withSpring(1, { duration: 200 }));
+    if (filled) s.value = withSequence(withTiming(1.25, { duration: 100 }), withTiming(1, { duration: 120 }));
   }, [filled, s]);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   return (

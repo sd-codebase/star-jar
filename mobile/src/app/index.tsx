@@ -1,7 +1,7 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
-import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withDelay, withSpring, ZoomIn, ZoomOut } from "react-native-reanimated";
+import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withDelay, withSpring, ZoomIn, ZoomOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { pinFor, totalStars } from "@shared/rules";
 import type { Kid } from "@shared/types";
@@ -102,7 +102,7 @@ export default function Home() {
       {picked && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={[StyleSheet.absoluteFill, { zIndex: 40 }]}>
           <Pressable onPress={closePin} style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", padding: 16, backgroundColor: "rgba(59,7,100,0.6)" }]}>
-            <Animated.View entering={ZoomIn.springify().damping(12)} exiting={ZoomOut}>
+            <Animated.View entering={ZoomIn.duration(300).easing(Easing.out(Easing.back(1.3)))} exiting={ZoomOut}>
               <Pressable onPress={() => {}}>
                 <Card style={{ alignItems: "center", padding: 20 }}>
                   <Pressable onPress={closePin} hitSlop={12} style={{ position: "absolute", right: 16, top: 12 }}>
